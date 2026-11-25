@@ -81,10 +81,11 @@ export class View {
     const towers: Tower[] = [];
     for (const row of m.towers) {
       if (!Array.isArray(row)) continue;
-      const [id, kindIdx, col, rowN, level, spent] = row;
+      const [id, kindIdx, col, rowN, level, spent, fresh] = row;
       const kind = towerKindAt(kindIdx);
       if (!kind || num(col, 0, COLS - 1) === null || num(rowN, 0, ROWS - 1) === null || num(level, 0, TOWERS[kind].levels.length - 1) === null) continue;
-      towers.push({ id, kind, col, row: rowN, level, cd: 0, spent: num(spent, 0, 1e9) ?? 0, aim: 0 });
+      const sp = num(spent, 0, 1e9) ?? 0;
+      towers.push({ id, kind, col, row: rowN, level, cd: 0, spent: sp, fresh: num(fresh, 0, sp) ?? 0, aim: 0 });
     }
     const shots: Shot[] = [];
     for (const row of m.shots) {

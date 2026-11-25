@@ -21,6 +21,17 @@ export interface ReleaseNote {
 /** 최신 버전이 맨 위 */
 export const RELEASES: readonly ReleaseNote[] = [
   {
+    version: '0.1.1',
+    date: '2026-11-25',
+    title: '순위표가 새로워졌어요',
+    items: [
+      '🏆 순위표에서 1~3등이 색으로 보이고, 내 기록이 강조돼요.',
+      '순위표에 끝날 때 서 있던 타워와 단계가 함께 나와요.',
+      '웨이브 전에 지은 타워는 웨이브 전에 팔면 원가로 돌려받아요.',
+      '웨이브가 시작된 뒤에 팔면 예전처럼 70%를 돌려받아요.',
+    ],
+  },
+  {
     version: '0.1.0',
     date: '2026-11-25',
     title: '첫 버전이에요',

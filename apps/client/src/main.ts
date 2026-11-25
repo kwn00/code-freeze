@@ -21,7 +21,6 @@ import {
   towerAt,
   unseenReleases,
   upgradeCost,
-  type BoardEntry,
   type ClientMsg,
   type ReleaseNote,
   type RunResult,
@@ -29,6 +28,7 @@ import {
   type TowerId,
 } from '@code-freeze/shared';
 import { Audio } from './audio';
+import { Leaderboard } from './leaderboard';
 import { Net } from './net';
 import { Renderer, type Preview } from './render';
 import { makeSprites } from './sprites';
@@ -166,7 +166,7 @@ function refreshUi(): void {
     const up = $<HTMLButtonElement>('tp-upgrade');
     up.textContent = cost === null ? '최대 단계' : `⬆ 올리기 ${cost} SP`;
     up.disabled = cost === null || money < cost;
-    $('tp-sell').textContent = `💸 팔기 +${sellValue(t)}`;
+    $('tp-sell').textContent = t.fresh >= t.spent ? `↩️ 되돌리기 +${sellValue(t)}` : `💸 팔기 +${sellValue(t)}`;
   }
   // 서버가 멈춤 상태면 멈춤 화면을 띄운다 (끊겼다 다시 붙었을 때 포함)
   if (playing && s) $('screen-pause').classList.toggle('hidden', !(s.paused && s.status !== 'won' && s.status !== 'lost'));
@@ -301,7 +301,7 @@ function restart(): void {
 }
 
 window.addEventListener('keydown', (ev) => {
-  if (ev.repeat || ev.target instanceof HTMLInputElement) return;
+  if (ev.repeat || ev.target instanceof HTMLInputElement || board.isOpen) return;
   if (!playing) return;
   const n = Number(ev.key);
   if (n >= 1 && n <= TOWER_IDS.length) {
@@ -328,49 +328,9 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ── 순위표 ──
-function isEntry(e: unknown): e is BoardEntry {
-  const o = e as BoardEntry;
-  return (
-    typeof o === 'object' &&
-    o !== null &&
-    isCleanName(o.name) &&
-    Number.isInteger(o.cleared) &&
-    Number.isInteger(o.lives) &&
-    Number.isInteger(o.kills) &&
-    typeof o.won === 'boolean' &&
-    Number.isFinite(o.endedAt)
-  );
-}
-
-async function openBoard(): Promise<void> {
-  const list = $('board-list');
-  const note = $('board-note');
-  list.replaceChildren();
-  note.textContent = '불러오는 중…';
-  $('screen-board').classList.remove('hidden');
-  try {
-    const res = await fetch('/api/leaderboard');
-    const body = (await res.json()) as { entries?: unknown; persistent?: unknown; season?: unknown };
-    const entries = Array.isArray(body.entries) ? body.entries.filter(isEntry).slice(0, 100) : [];
-    note.textContent = entries.length ? `시즌 ${typeof body.season === 'number' ? body.season : 0} · 막은 스프린트 → 남은 가용성 순` : '아직 기록이 없어요. 첫 번째가 되어 보세요!';
-    for (const e of entries) {
-      const li = document.createElement('li');
-      if (e.won) li.classList.add('is-won');
-      if (e.name === myName) li.classList.add('is-me');
-      const b = document.createElement('b');
-      b.textContent = e.name;
-      const span = document.createElement('span');
-      span.textContent = ` · ${e.won ? '🎉 프리즈 성공' : `Sprint ${e.cleared}`} · 🖥️${e.lives} · 🐞${e.kills}`;
-      li.append(b, span);
-      list.append(li);
-    }
-  } catch {
-    note.textContent = '순위표를 불러오지 못했어요. 잠시 뒤에 다시 열어 주세요.';
-  }
-}
-$('btn-board').addEventListener('click', () => void openBoard());
-$('btn-board2').addEventListener('click', () => void openBoard());
-$('btn-board-close').addEventListener('click', () => $('screen-board').classList.add('hidden'));
+const board = new Leaderboard([$('app'), $('screen-title'), $('screen-result'), $('screen-pause')]);
+$('btn-board').addEventListener('click', () => board.open());
+$('btn-board2').addEventListener('click', () => board.open());
 
 // ── 새 소식 ──
 function openNews(notes: readonly ReleaseNote[]): void {
@@ -415,6 +375,7 @@ function showResult(r: RunResult): void {
     $('result-title').textContent = '💥 장애 발생';
     $('result-text').textContent = `스프린트 ${r.cleared}개를 막고 버그 ${r.kills}마리를 잡았지만 prod 가 내려갔어요.`;
   }
+  board.setMine(typeof r.rank === 'number' ? { rank: r.rank, name: myName, cleared: r.cleared, lives: r.lives, kills: r.kills } : null);
   $('result-rank').textContent = typeof r.rank === 'number' ? `🏆 순위표 ${r.rank}등에 올랐어요!` : r.cleared < 1 ? '스프린트를 하나 이상 막으면 순위표에 올라요.' : '';
   $('screen-result').classList.remove('hidden');
 }

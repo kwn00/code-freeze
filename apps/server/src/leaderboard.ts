@@ -7,7 +7,7 @@
  * - 기록은 지우지 않는다 (CLAUDE.md). 시즌(LEADERBOARD_SEASON = 메이저 버전)이 바뀌면 기본 순위표에서만 빠진다.
  */
 import { randomUUID } from 'node:crypto';
-import { APP_VERSION, WAVES, isCleanName, type BoardEntry } from '@code-freeze/shared';
+import { APP_VERSION, LEADERBOARD_SIZE, WAVES, isBoardTowers, isCleanName, type BoardEntry, type LeaderboardEntry } from '@code-freeze/shared';
 import type { RunReport } from './game';
 
 export interface RunRecord extends BoardEntry {
@@ -25,7 +25,7 @@ export interface LeaderboardStore {
 }
 
 /** 순위표에 보여 주는 개수 */
-export const BOARD_SIZE = 50;
+export const BOARD_SIZE = LEADERBOARD_SIZE;
 /** 저장을 다시 시도하는 간격 */
 const RETRY_MS = 15_000;
 /** 저장하지 못하고 쌓아 둘 수 있는 기록 수 (넘치면 오래된 것부터 버린다: 메모리를 지킨다) */
@@ -47,7 +47,8 @@ export function isValidEntry(e: BoardEntry): boolean {
     Number.isInteger(e.kills) &&
     e.kills >= 0 &&
     e.won === (e.cleared === WAVES.length && e.lives > 0) &&
-    Number.isFinite(e.endedAt)
+    Number.isFinite(e.endedAt) &&
+    (e.towers === undefined || isBoardTowers(e.towers))
   );
 }
 
@@ -91,8 +92,19 @@ export class Leaderboard {
     }
   }
 
-  top(): BoardEntry[] {
-    return this.entries.map(({ name, cleared, lives, kills, won, endedAt }) => ({ name, cleared, lives, kills, won, endedAt }));
+  /** 순위표 응답의 줄들 (순위를 붙여서). 저장소 id·시즌은 내보내지 않는다 */
+  top(): LeaderboardEntry[] {
+    return this.entries.map(({ name, cleared, lives, kills, won, endedAt, towers, version }, i) => ({
+      rank: i + 1,
+      name,
+      cleared,
+      lives,
+      kills,
+      won,
+      endedAt,
+      ...(towers ? { towers } : {}),
+      ...(version ? { version } : {}),
+    }));
   }
 
   /**
@@ -115,6 +127,7 @@ export class Leaderboard {
       kills: r.kills,
       won: r.won,
       endedAt: now,
+      towers: r.towers,
     };
     if (!isValidEntry(rec)) return null;
     this.pending.push(rec);

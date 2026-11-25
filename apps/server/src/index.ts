@@ -13,7 +13,7 @@ import http, { type IncomingMessage, type ServerResponse } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer, type RawData, type WebSocket } from 'ws';
-import { APP_VERSION, LEADERBOARD_SEASON, MAX_CLIENT_MSG_BYTES, PROTOCOL_VERSION, parseClientMsg, type ServerMsg } from '@code-freeze/shared';
+import { APP_VERSION, LEADERBOARD_SEASON, MAX_CLIENT_MSG_BYTES, PROTOCOL_VERSION, parseClientMsg, type LeaderboardResponse, type ServerMsg } from '@code-freeze/shared';
 import { Game, GameManager } from './game';
 import { Leaderboard, MemoryStore, type LeaderboardStore } from './leaderboard';
 import { IpLimiter, SECURITY_HEADERS, TokenBucket, clientIp, issueSession, originAllowed, pathnameOf, verifySession } from './security';
@@ -150,12 +150,8 @@ function handleRequest(req: IncomingMessage, res: ServerResponse): void {
   if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, 405, { error: 'method_not_allowed' });
   if (!getLimiter.take(clientIp(req))) return json(res, 429, { error: 'rate_limited' }, { 'Retry-After': '10' });
   if (pathname === '/api/leaderboard') {
-    return json(
-      res,
-      200,
-      { season: leaderboard.season, persistent: leaderboard.persistent, loading: !leaderboard.ready, entries: leaderboard.top() },
-      { 'Access-Control-Allow-Origin': '*' },
-    );
+    const body: LeaderboardResponse = { season: leaderboard.season, persistent: leaderboard.persistent, loading: !leaderboard.ready, entries: leaderboard.top() };
+    return json(res, 200, body, { 'Access-Control-Allow-Origin': '*' });
   }
   if (pathname.startsWith('/api/')) return json(res, 404, { error: 'not_found' });
   serveStatic(req, res, pathname);

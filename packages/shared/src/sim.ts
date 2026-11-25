@@ -51,6 +51,11 @@ export interface Tower {
   cd: number;
   /** 지금까지 쓴 값 (팔 때) */
   spent: number;
+  /**
+   * spent 중 이번 짓는 시간(웨이브 사이)에 쓴 값. 다음 웨이브가 시작되기 전에 팔면 이만큼은 원가로 돌려받는다
+   * (잘못 지은 것을 되돌릴 수 있게). 웨이브가 시작되면 0 이 된다. 웨이브 중에 쓴 값은 들어가지 않는다
+   */
+  fresh: number;
   /** 바라보는 방향 (화면용, 라디안) */
   aim: number;
 }
@@ -185,7 +190,7 @@ export function build(s: State, kind: TowerId, col: number, row: number): Tower 
   const cost = TOWERS[kind].levels[0]!.cost;
   if (!canBuildAt(s, col, row) || s.money < cost) return null;
   s.money -= cost;
-  const t: Tower = { id: s.nextId++, kind, col, row, level: 0, cd: 0, spent: cost, aim: Math.PI / 2 };
+  const t: Tower = { id: s.nextId++, kind, col, row, level: 0, cd: 0, spent: cost, fresh: s.status === 'build' ? cost : 0, aim: Math.PI / 2 };
   s.towers.push(t);
   return t;
 }
@@ -203,12 +208,14 @@ export function upgrade(s: State, towerId: number): boolean {
   if (cost === null || s.money < cost) return false;
   s.money -= cost;
   t.spent += cost;
+  if (s.status === 'build') t.fresh += cost;
   t.level++;
   return true;
 }
 
+/** 팔 때 돌려받는 값: 이번 짓는 시간에 쓴 값은 원가로, 그 전에 쓴 값은 SELL_RATE 만큼 */
 export function sellValue(t: Tower): number {
-  return Math.floor(t.spent * SELL_RATE);
+  return t.fresh + Math.floor((t.spent - t.fresh) * SELL_RATE);
 }
 
 export function sell(s: State, towerId: number): boolean {
@@ -225,6 +232,8 @@ export function startWave(s: State): boolean {
   if (s.status !== 'build' || s.wave >= WAVES.length) return false;
   s.wave++;
   s.status = 'wave';
+  // 웨이브가 시작되면 원가로 되돌리기는 끝난다
+  for (const t of s.towers) t.fresh = 0;
   s.waveTime = 0;
   const def = WAVES[s.wave - 1]!;
   for (const g of def.groups) {
