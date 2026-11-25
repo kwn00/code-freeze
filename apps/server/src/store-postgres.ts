@@ -125,6 +125,11 @@ export function createPostgresStore(url: string): LeaderboardStore {
         ),
       );
     },
+    async seasons() {
+      await ensureSchema();
+      const { rows } = await tx((c) => c.query<{ season: number }>('SELECT DISTINCT season FROM runs ORDER BY season'));
+      return rows.map((r) => r.season);
+    },
     async close() {
       await pool.end();
     },

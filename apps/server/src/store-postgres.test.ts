@@ -81,3 +81,12 @@ test('저장소에 이상한 값이 들어 있어도 화면에 내보내지 않�
   assert.equal(lb.top().find((e) => e.name === 'tw')?.towers, undefined);
   await lb.close();
 });
+
+test('시즌 목록을 읽는다', opts, async () => {
+  const store = createPostgresStore(await freshSchema());
+  await store.save(rec({ season: 0 }));
+  await store.save(rec({ season: 1 }));
+  await store.save(rec({ season: 1 }));
+  assert.deepEqual(await store.seasons(), [0, 1]);
+  await store.close();
+});

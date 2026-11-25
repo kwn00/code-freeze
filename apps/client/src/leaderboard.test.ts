@@ -7,7 +7,7 @@ const ok = { rank: 1, name: '버그헌터', cleared: 10, lives: 5, kills: 300, w
 test('서버에서 온 줄은 모양을 확인하고 쓴다', () => {
   assert.deepEqual(checkEntry(ok), ok);
   assert.equal(checkEntry({ ...ok, name: '<img src=x onerror=alert(1)>' }), null);
-  assert.equal(checkEntry({ ...ok, cleared: 99 }), null);
+  assert.equal(checkEntry({ ...ok, cleared: 100000 }), null);
   assert.equal(checkEntry({ ...ok, rank: 0 }), null);
   assert.equal(checkEntry(null), null);
   // 타워·버전만 틀리면 그것만 빼고 쓴다
@@ -25,4 +25,9 @@ test('내 기록은 순위가 아니라 내용으로 찾는다 (그 사이 밀�
   ];
   assert.equal(findMine(rows, { rank: 1, name: '버그헌터', cleared: 10, lives: 5, kills: 300 }), 2);
   assert.equal(findMine(rows, { rank: 1, name: '없음', cleared: 10, lives: 5, kills: 300 }), -1);
+});
+
+test('야근 기록(30 스프린트 넘김)도 순위표에 나온다', () => {
+  assert.ok(checkEntry({ ...ok, cleared: 47 }));
+  assert.equal(checkEntry({ ...ok, cleared: 100000 }), null);
 });

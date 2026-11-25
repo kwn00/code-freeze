@@ -808,3 +808,39 @@ body {
     display: block !important;
   }
 }
+
+/* ── 순위표: 시즌 탭, 타워 그림 ── */
+.board__tabs {
+  flex: 1 1 100%;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tab {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--muted);
+  background: var(--bg-2);
+  border: var(--px) solid var(--line);
+  border-radius: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.tab--on {
+  color: var(--line);
+  background: var(--green);
+}
+.tab:focus-visible {
+  outline: var(--px) solid var(--yellow);
+  outline-offset: var(--px);
+}
+.row__sprite {
+  width: 14px;
+  height: 14px;
+  image-rendering: pixelated;
+  align-self: center;
+}

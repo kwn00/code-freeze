@@ -130,14 +130,21 @@ export interface LeaderboardEntry extends BoardEntry {
 
 /** GET /api/leaderboard 의 응답 */
 export interface LeaderboardResponse {
-  /** 보고 있는 시즌 (= 지금 시즌) */
+  /** 보고 있는 시즌 */
   season: number;
+  /** 지금 시즌 (새 기록이 쌓이는 곳). 지난 시즌은 읽기만 한다 */
+  current: number;
+  /** 기록이 있는 시즌들 (오름차순, 지금 시즌은 늘 들어 있다) */
+  seasons: number[];
   /** false 면 기록이 서버 메모리에만 있어서 서버가 다시 시작되면 사라진다 */
   persistent: boolean;
   /** true 면 저장된 기록을 아직 불러오지 못했다 (DB 가 깨어나는 중). 지금 목록은 일부일 수 있다 */
   loading: boolean;
   entries: LeaderboardEntry[];
 }
+
+/** 막은 스프린트 수의 상한 (야근은 끝이 없지만, 말이 안 되는 값은 버린다. 서버·화면이 함께 쓴다) */
+export const MAX_CLEARED = 9999;
 
 /** 순위표에 보여 주는 개수 */
 export const LEADERBOARD_SIZE = 50;

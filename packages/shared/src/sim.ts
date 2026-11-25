@@ -27,6 +27,8 @@ const BURN_TIME = 1.5;
 export const ENTER_DIST = 0.5;
 /** 탄 속도 (칸/초) */
 const SHOT_SPEED = 9;
+/** 보스 체력이 난이도 곡선을 따라가는 몫 */
+export const BOSS_HP_SHARE = 0.5;
 /** 맵에 있을 수 있는 버그 수 (넘치면 더 나오지 않는다: 서버 계산량과 전송량을 지킨다) */
 export const MAX_ENEMIES = 400;
 /** 정규표현식의 줄 굵기 (줄에서 이만큼 안이면 맞는다, 칸) */
@@ -127,6 +129,8 @@ export interface State {
   shots: Shot[];
   events: GameEvent[];
   kills: number;
+  /** 지금 웨이브가 시작될 때의 kills. 웨이브 중에 끝나면(퇴근·장애·닫힘) 막지 못한 웨이브에서 잡은 것은 기록에 넣지 않는다 */
+  killsAtWaveStart: number;
   nextId: number;
 }
 
@@ -188,6 +192,7 @@ export function newGame(): State {
     shots: [],
     events: [],
     kills: 0,
+    killsAtWaveStart: 0,
     nextId: 1,
   };
 }
@@ -258,6 +263,11 @@ export function isOver(s: State): boolean {
   return s.status === 'won' || s.status === 'lost' || s.status === 'retired';
 }
 
+/** 기록에 넣을 잡은 버그 수: 막은 스프린트까지만 (웨이브 중에 끝났으면 그 웨이브 시작 때까지) */
+export function recordedKills(s: State): number {
+  return s.status === 'wave' || s.status === 'lost' ? s.killsAtWaveStart : s.kills;
+}
+
 /** 막은 스프린트 수 (순위표의 점수) */
 export function clearedOf(s: State): number {
   return s.status === 'wave' || s.status === 'lost' ? s.wave - 1 : s.wave;
@@ -268,6 +278,7 @@ export function retire(s: State): boolean {
   if (isOver(s)) return false;
   s.queue = [];
   s.shots = [];
+  s.kills = recordedKills(s);
   s.wave = clearedOf(s);
   s.status = 'retired';
   s.events.push({ t: 'retired' });
@@ -279,6 +290,7 @@ export function startWave(s: State): boolean {
   if (s.status !== 'build') return false;
   s.wave++;
   s.status = 'wave';
+  s.killsAtWaveStart = s.kills;
   // 웨이브가 시작되면 원가로 되돌리기는 끝난다
   for (const t of s.towers) t.fresh = 0;
   s.waveTime = 0;
@@ -297,7 +309,9 @@ export function hpScale(wave: number): number {
 
 function spawn(s: State, kind: EnemyId, dist = 0): Enemy | null {
   if (s.enemies.length >= MAX_ENEMIES) return null;
-  const hp = Math.round(ENEMIES[kind].hp * hpScale(s.wave));
+  // 보스는 체력이 절반 속도로 늘어난다 (늦은 막의 보스도 4단계를 다 올리지 않고 잡을 수 있게)
+  const scale = hpScale(s.wave);
+  const hp = Math.round(ENEMIES[kind].hp * (ENEMIES[kind].boss ? 1 + (scale - 1) * BOSS_HP_SHARE : scale));
   const e: Enemy = { id: s.nextId++, kind, hp, maxHp: hp, dist, slow: 1, burnDps: 0, burnLeft: 0, flash: 0, stunLeft: 0, age: 0 };
   s.enemies.push(e);
   if (ENEMIES[kind].boss) s.events.push({ t: 'boss', kind });

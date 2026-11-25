@@ -7,7 +7,7 @@
  * - 기록은 지우지 않는다 (CLAUDE.md). 시즌(LEADERBOARD_SEASON = 메이저 버전)이 바뀌면 기본 순위표에서만 빠진다.
  */
 import { randomUUID } from 'node:crypto';
-import { APP_VERSION, LEADERBOARD_SIZE, OLD_WIN_WAVE, WIN_WAVE, isBoardTowers, isCleanName, type BoardEntry, type LeaderboardEntry } from '@code-freeze/shared';
+import { APP_VERSION, LEADERBOARD_SIZE, MAX_CLEARED, OLD_WIN_WAVE, WIN_WAVE, isBoardTowers, isCleanName, type BoardEntry, type LeaderboardEntry } from '@code-freeze/shared';
 import type { RunReport } from './game';
 
 export interface RunRecord extends BoardEntry {
@@ -20,6 +20,8 @@ export interface LeaderboardStore {
   readonly persistent: boolean;
   /** 그 시즌의 상위 limit 개 (순위대로) */
   top(season: number, limit: number): Promise<RunRecord[]>;
+  /** 기록이 있는 시즌들 */
+  seasons(): Promise<number[]>;
   save(r: RunRecord): Promise<void>;
   close(): Promise<void>;
 }
@@ -30,9 +32,6 @@ export const BOARD_SIZE = LEADERBOARD_SIZE;
 const RETRY_MS = 15_000;
 /** 저장하지 못하고 쌓아 둘 수 있는 기록 수 (넘치면 오래된 것부터 버린다: 메모리를 지킨다) */
 const MAX_PENDING = 500;
-
-/** 막은 스프린트 수의 상한 (야근은 끝이 없지만, 말이 안 되는 값은 버린다) */
-const MAX_CLEARED = 9999;
 
 export function compareRuns(a: BoardEntry, b: BoardEntry): number {
   return b.cleared - a.cleared || b.lives - a.lives || b.kills - a.kills || a.endedAt - b.endedAt;
@@ -64,6 +63,9 @@ export class MemoryStore implements LeaderboardStore {
   }
   async save(r: RunRecord): Promise<void> {
     if (!this.rows.some((x) => x.id === r.id)) this.rows.push(r);
+  }
+  async seasons(): Promise<number[]> {
+    return [...new Set(this.rows.map((r) => r.season))].sort((a, b) => a - b);
   }
   async close(): Promise<void> {}
 }
@@ -98,17 +100,54 @@ export class Leaderboard {
 
   /** 순위표 응답의 줄들 (순위를 붙여서). 저장소 id·시즌은 내보내지 않는다 */
   top(): LeaderboardEntry[] {
-    return this.entries.map(({ name, cleared, lives, kills, won, endedAt, towers, version }, i) => ({
-      rank: i + 1,
-      name,
-      cleared,
-      lives,
-      kills,
-      won,
-      endedAt,
-      ...(towers ? { towers } : {}),
-      ...(version ? { version } : {}),
-    }));
+    return toEntries(this.entries);
+  }
+
+  private seasonCache: { at: number; list: number[] } | null = null;
+  private seasonLoad: Promise<number[] | null> | null = null;
+  private seasonFailAt = 0;
+  /**
+   * 기록이 있는 시즌들 (지금 시즌은 늘 들어 있다). 1분 동안 들고 있고, 한 번에 하나만 읽는다.
+   * 저장소가 실패하면 30초 동안 다시 묻지 않고, 아는 것이 없으면 null (화면은 지금 시즌만 보여 준다)
+   */
+  async seasons(now = Date.now()): Promise<number[] | null> {
+    const withCurrent = (list: number[]): number[] => [...new Set([...list, this.season])].filter((n) => Number.isInteger(n) && n >= 0 && n <= this.season).sort((a, b) => a - b);
+    if (this.seasonCache && now - this.seasonCache.at < 60_000) return this.seasonCache.list;
+    if (now - this.seasonFailAt < 30_000) return this.seasonCache?.list ?? null;
+    this.seasonLoad ??= this.store
+      .seasons()
+      .then((list) => {
+        this.seasonCache = { at: Date.now(), list: withCurrent(list) };
+        return this.seasonCache.list;
+      })
+      .catch((err) => {
+        console.error('[leaderboard] 시즌 목록을 읽지 못했습니다', err instanceof Error ? err.message : err);
+        this.seasonFailAt = Date.now();
+        return this.seasonCache?.list ?? null;
+      })
+      .finally(() => (this.seasonLoad = null));
+    return this.seasonLoad;
+  }
+
+  private past = new Map<number, { at: number; entries: LeaderboardEntry[] } | Promise<LeaderboardEntry[]>>();
+  /** 지난 시즌의 순위표: 저장소에서 한 번 읽어 10분 동안 들고 있는다 (같은 것을 동시에 물어도 한 번만 읽는다) */
+  async pastTop(season: number, now = Date.now()): Promise<LeaderboardEntry[]> {
+    const hit = this.past.get(season);
+    if (hit && !(hit instanceof Promise) && now - hit.at < 10 * 60_000) return hit.entries;
+    if (hit instanceof Promise) return hit;
+    const load = this.store
+      .top(season, BOARD_SIZE)
+      .then((rows) => {
+        const entries = toEntries(rows.filter(isValidEntry).sort(compareRuns));
+        this.past.set(season, { at: Date.now(), entries });
+        return entries;
+      })
+      .catch((err) => {
+        this.past.delete(season);
+        throw err;
+      });
+    this.past.set(season, load);
+    return load;
   }
 
   /**
@@ -176,4 +215,18 @@ export class Leaderboard {
     if (this.retry) clearTimeout(this.retry);
     await this.store.close();
   }
+}
+
+function toEntries(rows: readonly RunRecord[]): LeaderboardEntry[] {
+  return rows.map(({ name, cleared, lives, kills, won, endedAt, towers, version }, i) => ({
+      rank: i + 1,
+      name,
+      cleared,
+      lives,
+      kills,
+      won,
+      endedAt,
+      ...(towers ? { towers } : {}),
+      ...(version ? { version } : {}),
+    }));
 }

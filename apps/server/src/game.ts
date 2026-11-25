@@ -16,6 +16,7 @@ import {
   WIN_WAVE,
   boardTowersOf,
   clearedOf,
+  recordedKills,
   isOver,
   retire,
   build,
@@ -177,9 +178,10 @@ export class Game {
     const s = this.state;
     const cleared = clearedOf(s);
     const won = cleared >= WIN_WAVE;
-    const report: RunReport = { name: this.name, won, cleared, lives: s.lives, kills: s.kills, towers: boardTowersOf(s), simSeconds: s.time, wallSeconds: (now - this.startedAt) / 1000 };
+    const kills = recordedKills(s);
+    const report: RunReport = { name: this.name, won, cleared, lives: s.lives, kills, towers: boardTowersOf(s), simSeconds: s.time, wallSeconds: (now - this.startedAt) / 1000 };
     const reason = s.status === 'lost' ? 'lost' : 'retired';
-    const result = (rank: number | null): RunResult => ({ won, reason, cleared, lives: s.lives, kills: s.kills, rank });
+    const result = (rank: number | null): RunResult => ({ won, reason, cleared, lives: s.lives, kills, rank });
     const state = this.state;
     this.record(report)
       .catch(() => null)

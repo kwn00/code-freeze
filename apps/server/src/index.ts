@@ -16,7 +16,7 @@ import { WebSocketServer, type RawData, type WebSocket } from 'ws';
 import { APP_VERSION, LEADERBOARD_SEASON, MAX_CLIENT_MSG_BYTES, PROTOCOL_VERSION, parseClientMsg, type LeaderboardResponse, type ServerMsg } from '@code-freeze/shared';
 import { Game, GameManager } from './game';
 import { Leaderboard, MemoryStore, type LeaderboardStore } from './leaderboard';
-import { IpLimiter, SECURITY_HEADERS, TokenBucket, clientIp, issueSession, originAllowed, pathnameOf, verifySession } from './security';
+import { IpLimiter, SECURITY_HEADERS, TokenBucket, clientIp, issueSession, originAllowed, pathnameOf, queryOf, verifySession } from './security';
 import { sendFile } from './static';
 
 const PORT = Number(process.env.PORT ?? 8787);
@@ -150,8 +150,29 @@ function handleRequest(req: IncomingMessage, res: ServerResponse): void {
   if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, 405, { error: 'method_not_allowed' });
   if (!getLimiter.take(clientIp(req))) return json(res, 429, { error: 'rate_limited' }, { 'Retry-After': '10' });
   if (pathname === '/api/leaderboard') {
-    const body: LeaderboardResponse = { season: leaderboard.season, persistent: leaderboard.persistent, loading: !leaderboard.ready, entries: leaderboard.top() };
-    return json(res, 200, body, { 'Access-Control-Allow-Origin': '*' });
+    // 읽기 전용 공개 정보. 지금 시즌은 메모리의 순위표를 그대로 (DB 를 기다리지 않는다).
+    // 지난 시즌(?season=N)은 있는 시즌일 때만 저장소에서 한 번 읽어 잠시 들고 있는다.
+    const cors = { 'Access-Control-Allow-Origin': '*' };
+    const raw = queryOf(req.url, 'season');
+    if (raw !== null && !/^\d{1,6}$/.test(raw)) return json(res, 400, { error: 'bad_season' }, cors);
+    const season = raw === null ? leaderboard.season : Number(raw);
+    void (async () => {
+      const known = await leaderboard.seasons();
+      const seasons = known ?? [leaderboard.season];
+      if (season === leaderboard.season) {
+        const body: LeaderboardResponse = { season, current: leaderboard.season, seasons, persistent: leaderboard.persistent, loading: !leaderboard.ready, entries: leaderboard.top() };
+        return json(res, 200, body, cors);
+      }
+      if (!known) return json(res, 503, { error: 'unavailable' }, { ...cors, 'Retry-After': '30' });
+      if (!known.includes(season)) return json(res, 404, { error: 'unknown_season', seasons: known }, cors);
+      const body: LeaderboardResponse = { season, current: leaderboard.season, seasons, persistent: leaderboard.persistent, loading: false, entries: await leaderboard.pastTop(season) };
+      json(res, 200, body, cors);
+    })().catch((err) => {
+      console.error('[error] leaderboard api', err instanceof Error ? err.message : err);
+      if (!res.headersSent) json(res, 503, { error: 'unavailable' }, { ...cors, 'Retry-After': '30' });
+      else res.destroy();
+    });
+    return;
   }
   if (pathname.startsWith('/api/')) return json(res, 404, { error: 'not_found' });
   serveStatic(req, res, pathname);

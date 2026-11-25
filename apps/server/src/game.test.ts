@@ -217,3 +217,30 @@ test('서버가 꺼질 때 진행 중인 판도 기록한다', async () => {
   assert.equal(reports.length, 1);
   assert.equal(reports[0]!.cleared, 9);
 });
+
+test('시즌: 지난 시즌 순위표는 저장소에서 읽고, 시즌 목록에는 지금 시즌이 늘 들어 있다', async () => {
+  const store = new MemoryStore();
+  const base = { lives: 3, kills: 5, won: false, endedAt: 1, version: '0.1.1' };
+  await store.save({ ...base, id: 'a', season: 0, name: '옛1', cleared: 5 });
+  await store.save({ ...base, id: 'b', season: 0, name: '옛2', cleared: 9 });
+  await store.save({ ...base, id: 'c', season: 0, name: '<x>', cleared: 9 });
+  const lb = new Leaderboard(store, 1);
+  await lb.init();
+  assert.deepEqual(lb.top(), [], '시즌 1 은 비어 있다');
+  assert.deepEqual(await lb.seasons(), [0, 1]);
+  const past = await lb.pastTop(0);
+  assert.deepEqual(past.map((e) => [e.rank, e.name]), [[1, '옛2'], [2, '옛1']], '모양이 틀린 기록은 빼고 순위대로');
+  // 지난 시즌을 읽는 동안 지금 시즌 기록은 섞이지 않는다
+  lb.record({ name: '새', won: false, cleared: 2, lives: 5, kills: 1, simSeconds: 10, wallSeconds: 10, towers: [] });
+  assert.deepEqual(lb.top().map((e) => e.name), ['새']);
+  assert.equal((await lb.pastTop(0)).length, 2);
+});
+
+test('시즌: 저장소가 시즌 목록을 못 읽으면 null (지금 시즌 순위표는 그대로 답한다)', async () => {
+  const store = new MemoryStore();
+  store.seasons = async () => {
+    throw new Error('db down');
+  };
+  const lb = new Leaderboard(store, 1);
+  assert.equal(await lb.seasons(), null);
+});

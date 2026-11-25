@@ -83,6 +83,20 @@
       </div>
     </section>
 
+    <section id="screen-freeze" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="freeze-title">
+      <div class="panel">
+        <pre class="result-code is-good">$ git tag freeze-done
+✔ All checks passed
+✔ 30 sprints merged</pre>
+        <h2 id="freeze-title">🎉 코드 프리즈 성공!</h2>
+        <p class="muted">30 스프린트를 모두 막았어요. 여기서 퇴근해 기록을 남길 수도 있고, 야근을 이어 가며 더 높은 기록에 도전할 수도 있어요.</p>
+        <div class="buttons">
+          <button id="btn-freeze-retire" class="btn btn--primary btn--wide" type="button">🏠 퇴근하기 <small>프리즈 성공으로 기록</small></button>
+          <button id="btn-freeze-continue" class="btn btn--wide" type="button">🌙 야근 계속 <small>어디까지 버티나</small></button>
+        </div>
+      </div>
+    </section>
+
     <section id="screen-result" class="screen hidden">
       <div class="panel">
         <pre id="result-code" class="result-code"></pre>
@@ -101,6 +115,7 @@
         <div class="board__head">
           <h2 id="board-title" class="board__title">🏆 git log --top <small>순위표</small></h2>
           <button id="btn-board-close" class="board__close" type="button" aria-label="순위표 닫기">✕</button>
+          <div id="board-tabs" class="board__tabs" role="tablist" aria-label="시즌"></div>
         </div>
         <p id="board-note" class="board__note hidden"></p>
         <div id="board-body" class="board__body" aria-live="polite" tabindex="0"></div>

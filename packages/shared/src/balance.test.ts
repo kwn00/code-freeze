@@ -62,15 +62,24 @@ function play(rotation: TowerId[], maxLevel: number, towersPerWave: (w: number) 
   return clearedOf(s);
 }
 
+const EXPERT = (): number => play(['log', 'test', 'duck', 'ai', 'firewall', 'regex', 'freeze', 'lb'], 3, (w) => Math.min(40, 2 + Math.floor(w * 0.9)));
+
 test('잘하는 봇은 프리즈에 성공하고 야근에 들어가지만, 야근은 끝이 있다', () => {
-  const cleared = play(['log', 'test', 'duck', 'ai', 'firewall', 'regex', 'freeze', 'lb'], 3, (w) => Math.min(40, 2 + Math.floor(w * 0.9)));
-  assert.ok(cleared >= WIN_WAVE + 3, `막은 스프린트 ${cleared}`);
+  const cleared = EXPERT();
+  assert.ok(cleared >= WIN_WAVE + 5, `막은 스프린트 ${cleared}`);
   assert.ok(cleared < WIN_WAVE + 30, `야근이 너무 길다: ${cleared}`);
 });
 
-test('대충 하는 봇과 console.log() 만 짓는 봇은 프리즈 전에 진다', () => {
+test('보통 실력(3단계까지, 타워를 섞어 씀)이면 30 스프린트를 깰 수 있다', () => {
+  const mid = play(['log', 'test', 'duck', 'ai', 'regex', 'freeze', 'lb', 'firewall'], 2, (w) => Math.min(40, 2 + Math.floor(w * 0.75)));
+  assert.ok(mid >= WIN_WAVE, `보통: ${mid}`);
+  const mid2 = play(['log', 'test', 'ai', 'duck', 'lb', 'regex'], 2, (w) => Math.min(40, 2 + Math.floor(w * 0.6)));
+  assert.ok(mid2 >= WIN_WAVE, `보통(타워 적게): ${mid2}`);
+});
+
+test('대충 하는 봇은 프리즈 전에 지고, console.log() 만 짓는 봇은 잘하는 봇보다 못 간다', () => {
   const casual = play(['log', 'test', 'log', 'duck'], 1, (w) => Math.min(40, 2 + Math.floor(w * 0.6)));
   assert.ok(casual >= 3 && casual < 20, `대충: ${casual}`);
   const spam = play(['log'], 3, (w) => Math.min(60, 3 + w));
-  assert.ok(spam >= 10 && spam < WIN_WAVE, `log 만: ${spam}`);
+  assert.ok(spam >= 10 && spam < EXPERT() - 5, `log 만: ${spam}`);
 });

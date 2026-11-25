@@ -113,6 +113,7 @@ export class View {
       shots,
       events: [],
       kills: m.kills,
+      killsAtWaveStart: 0,
       nextId: 0,
       speed: m.speed,
       paused: m.paused,

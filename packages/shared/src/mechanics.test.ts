@@ -141,3 +141,13 @@ test('맵의 버그 수에는 상한이 있다 (서버 계산량·전송량을 �
   step(s);
   assert.ok(s.enemies.length <= MAX_ENEMIES);
 });
+
+test('웨이브 중에 끝나면 그 웨이브에서 잡은 버그는 기록에 넣지 않는다', () => {
+  const s = newGame();
+  s.kills = 10;
+  startWave(s);
+  s.kills = 25; // 웨이브 중에 15 마리 더
+  retire(s);
+  assert.equal(s.kills, 10);
+  assert.equal(clearedOf(s), 0);
+});

@@ -262,9 +262,9 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   race_condition: { id: 'race_condition', name: '레이스 컨디션', hp: 80, speed: 1.2, armor: 1, bounty: 10, leak: 2, enrage: 1.8 },
   boss_bug: { id: 'boss_bug', name: '왕버그', hp: 900, speed: 0.5, armor: 3, bounty: 80, leak: 10, boss: true, splits: { kind: 'off_by_one', count: 4 } },
   god_class: { id: 'god_class', name: 'God Class', hp: 2600, speed: 0.38, armor: 8, bounty: 200, leak: 20, boss: true, splits: { kind: 'null_ptr', count: 3 } },
-  legacy_code: { id: 'legacy_code', name: '레거시 코드', hp: 3200, speed: 0.32, armor: 10, bounty: 220, leak: 15, boss: true, regen: 8, spawns: { kind: 'typo', every: 3 } },
-  spaghetti: { id: 'spaghetti', name: '스파게티 코드', hp: 2400, speed: 0.42, armor: 4, bounty: 200, leak: 15, boss: true, splits: { kind: 'merge_conflict', count: 6 } },
-  monolith: { id: 'monolith', name: '모놀리스', hp: 9000, speed: 0.28, armor: 14, bounty: 600, leak: 20, boss: true, spawns: { kind: 'tech_debt', every: 6 } },
+  legacy_code: { id: 'legacy_code', name: '레거시 코드', hp: 3200, speed: 0.32, armor: 10, bounty: 220, leak: 10, boss: true, regen: 8, spawns: { kind: 'typo', every: 3 } },
+  spaghetti: { id: 'spaghetti', name: '스파게티 코드', hp: 2400, speed: 0.42, armor: 4, bounty: 200, leak: 10, boss: true, splits: { kind: 'merge_conflict', count: 6 } },
+  monolith: { id: 'monolith', name: '모놀리스', hp: 5500, speed: 0.28, armor: 12, bounty: 600, leak: 12, boss: true, spawns: { kind: 'null_ptr', every: 8 } },
 };
 
 /** 웨이브 한 무리: kind 를 count 마리, gap 초 간격으로. delay 는 웨이브 시작부터 이 무리가 나오기까지 */
@@ -321,7 +321,7 @@ export const WAVES: readonly WaveDef[] = [
   { name: '전환 D-4: 롤백 계획', groups: [{ kind: 'mem_leak', count: 20, gap: 0.6 }, { kind: 'tech_debt', count: 12, gap: 1.2, delay: 3 }] },
   { name: '전환 D-3: 레거시의 반격', groups: [{ kind: 'legacy_code', count: 1, gap: 1 }, { kind: 'flaky_test', count: 20, gap: 0.5, delay: 4 }] },
   { name: '전환 D-2: 전부 다', groups: [{ kind: 'merge_conflict', count: 20, gap: 0.5 }, { kind: 'race_condition', count: 20, gap: 0.5, delay: 4 }, { kind: 'boss_bug', count: 3, gap: 4, delay: 8 }] },
-  { name: '전환 D-day: 모놀리스', groups: [{ kind: 'tech_debt', count: 10, gap: 1.5 }, { kind: 'null_ptr', count: 20, gap: 0.6, delay: 2 }, { kind: 'monolith', count: 1, gap: 1, delay: 14 }] },
+  { name: '전환 D-day: 모놀리스', groups: [{ kind: 'tech_debt', count: 5, gap: 2 }, { kind: 'null_ptr', count: 12, gap: 0.8, delay: 2 }, { kind: 'monolith', count: 1, gap: 1, delay: 16 }] },
 ];
 
 /** 이 스프린트를 막으면 "프리즈 성공" (순위표의 🎉). 그 뒤로는 끝없는 야근이 이어진다 */
@@ -368,7 +368,7 @@ export const DIFFICULTY = {
   /** 1~10 스프린트: 스프린트마다 */
   act1: 0.08,
   /** 11~30 스프린트: 스프린트마다 */
-  later: 0.6,
+  later: 0.55,
   /** 야근 n 일차: × (1 + over1·n + over2·n²) */
   over1: 0.12,
   over2: 0.03,

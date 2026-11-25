@@ -248,6 +248,14 @@ $('btn-speed').addEventListener('click', () => toggleSpeed());
 $('btn-pause').addEventListener('click', () => setPaused(true));
 $('btn-resume').addEventListener('click', () => setPaused(false));
 $('btn-quit').addEventListener('click', () => restart());
+$('btn-freeze-retire').addEventListener('click', () => {
+  send({ t: 'retire' });
+  $('screen-freeze').classList.add('hidden');
+});
+$('btn-freeze-continue').addEventListener('click', () => {
+  $('screen-freeze').classList.add('hidden');
+  showBanner('🌙 야근 시작! 버틸 만큼 버티고 Ⅱ 메뉴에서 퇴근하세요', 'good', 3000);
+});
 $('btn-retire').addEventListener('click', () => {
   send({ t: 'retire' });
   $('screen-pause').classList.add('hidden');
@@ -306,6 +314,7 @@ function setPaused(p: boolean): void {
 }
 function restart(): void {
   send({ t: 'restart' });
+  $('screen-freeze').classList.add('hidden');
   buildKind = null;
   selected = null;
   $('screen-pause').classList.add('hidden');
@@ -313,11 +322,13 @@ function restart(): void {
 }
 
 window.addEventListener('keydown', (ev) => {
-  if (ev.repeat || ev.target instanceof HTMLInputElement || board.isOpen) return;
+  if (ev.repeat || ev.target instanceof HTMLInputElement || board.isOpen || !$('screen-freeze').classList.contains('hidden')) return;
   if (!playing) return;
   const n = Number(ev.key);
   if (n >= 1 && n <= TOWER_IDS.length) {
     const id = TOWER_IDS[n - 1]!;
+    const s = current();
+    if (s && !isUnlocked(s, id)) return; // 잠긴 타워는 고를 수 없다 (버튼과 같게)
     chooseBuild(buildKind === id ? null : id);
   } else if (ev.key === ' ') {
     ev.preventDefault();
@@ -340,7 +351,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ── 순위표 ──
-const board = new Leaderboard([$('app'), $('screen-title'), $('screen-result'), $('screen-pause')]);
+const board = new Leaderboard([$('app'), $('screen-title'), $('screen-result'), $('screen-pause')], (k) => spr.tower[k]);
 $('btn-board').addEventListener('click', () => board.open());
 $('btn-board2').addEventListener('click', () => board.open());
 
@@ -475,8 +486,9 @@ function handleEvents(now: number): void {
         showBanner(`✔ PR Merged! 보너스 +${e.bonus} SP`, 'good', 2200);
         break;
       case 'freeze_done':
+        // 깼다: 퇴근(기록 남기고 끝)할지 야근을 이어 갈지 고른다. 짓는 중이라 고르는 동안 게임은 흐르지 않는다
         audio.play('won');
-        showBanner(`🎉 코드 프리즈 성공! 이제부터는 야근이에요. 버틸 만큼 버티고 Ⅱ 메뉴에서 퇴근하세요`, 'good', 5000);
+        $('screen-freeze').classList.remove('hidden');
         break;
       case 'lost':
         audio.play('lost');
