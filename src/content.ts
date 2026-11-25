@@ -56,6 +56,8 @@ export interface TowerLevel {
 export interface TowerDef {
   id: TowerId;
   name: string;
+  /** 아래 버튼에 들어가는 짧은 이름 */
+  short: string;
   icon: string;
   desc: string;
   /** 'shot' = 탄을 쏜다, 'beam' = 바로 맞힌다, 'aura' = 둘레 전체에 계속 */
@@ -67,6 +69,7 @@ export const TOWERS: Record<TowerId, TowerDef> = {
   log: {
     id: 'log',
     name: 'console.log()',
+    short: 'log()',
     icon: '🖨️',
     desc: '싸고 빠르게 한 마리씩',
     attack: 'shot',
@@ -79,6 +82,7 @@ export const TOWERS: Record<TowerId, TowerDef> = {
   duck: {
     id: 'duck',
     name: '러버덕',
+    short: '러버덕',
     icon: '🦆',
     desc: '둘레의 버그를 느리게 (피해 조금)',
     attack: 'aura',
@@ -91,6 +95,7 @@ export const TOWERS: Record<TowerId, TowerDef> = {
   test: {
     id: 'test',
     name: '테스트 커버리지',
+    short: '테스트',
     icon: '🧪',
     desc: '맞은 자리 둘레까지 터뜨린다',
     attack: 'shot',
@@ -103,6 +108,7 @@ export const TOWERS: Record<TowerId, TowerDef> = {
   ai: {
     id: 'ai',
     name: 'AI 에이전트',
+    short: 'AI',
     icon: '🤖',
     desc: '멀리서 세게. 갑옷 무시',
     attack: 'beam',
@@ -115,6 +121,7 @@ export const TOWERS: Record<TowerId, TowerDef> = {
   firewall: {
     id: 'firewall',
     name: '방화벽',
+    short: '방화벽',
     icon: '🔥',
     desc: '둘레를 태운다 (화상: 계속 피해)',
     attack: 'aura',

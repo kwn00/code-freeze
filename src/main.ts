@@ -53,7 +53,7 @@ for (const [i, id] of TOWER_IDS.entries()) {
   c.getContext('2d')!.drawImage(spr.tower[id], 0, 0);
   const name = document.createElement('span');
   name.className = 'tower-btn__name';
-  name.textContent = def.name;
+  name.textContent = def.short;
   const cost = document.createElement('span');
   cost.className = 'tower-btn__cost';
   cost.textContent = `${def.levels[0]!.cost}`;
@@ -67,8 +67,6 @@ function chooseBuild(kind: TowerId | null): void {
   buildKind = kind;
   if (kind) {
     selected = null;
-    const def = TOWERS[kind];
-    showBanner(`${def.icon} ${def.name}: ${def.desc}`, '', 1600);
   }
   refreshUi();
 }
@@ -105,6 +103,12 @@ function refreshUi(): void {
     waveBtn.textContent = state.status === 'wave' ? `⏳ ${WAVES[state.wave - 1]?.name ?? ''}` : '—';
   }
   $('btn-speed').textContent = `×${speed}`;
+  const hint = $('build-hint');
+  hint.classList.toggle('hidden', !buildKind);
+  if (buildKind) {
+    const d = TOWERS[buildKind];
+    hint.textContent = `${d.icon} ${d.name} · ${d.desc} · 길 옆 빈칸을 누르세요`;
+  }
 
   const t = selected !== null ? state.towers.find((x) => x.id === selected) : undefined;
   $('tower-panel').classList.toggle('hidden', !t);

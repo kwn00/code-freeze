@@ -21,6 +21,8 @@ import {
 export const STEP = 1 / 30;
 /** 화상이 이어지는 시간 (초) */
 const BURN_TIME = 1.5;
+/** 이만큼 걸어 들어와야 맵 안에 보이고, 그때부터 맞는다 (길은 맵 위 바깥 한 칸에서 시작) */
+export const ENTER_DIST = 0.5;
 /** 탄 속도 (칸/초) */
 const SHOT_SPEED = 9;
 
@@ -262,7 +264,7 @@ function damage(e: Enemy, amount: number, pierce: boolean): void {
 function pickTarget(s: State, x: number, y: number, range: number): Enemy | undefined {
   let best: Enemy | undefined;
   for (const e of s.enemies) {
-    if (e.hp <= 0 || e.dist <= 0.2) continue;
+    if (e.hp <= 0 || e.dist < ENTER_DIST) continue;
     const [ex, ey] = enemyPos(e);
     if ((ex - x) ** 2 + (ey - y) ** 2 > range * range) continue;
     if (!best || e.dist > best.dist) best = e;
@@ -292,7 +294,7 @@ export function step(s: State): void {
       const hitNow = t.cd <= 0;
       if (hitNow) t.cd += lv.cooldown;
       for (const e of s.enemies) {
-        if (e.hp <= 0) continue;
+        if (e.hp <= 0 || e.dist < ENTER_DIST) continue;
         const [ex, ey] = enemyPos(e);
         if ((ex - x) ** 2 + (ey - y) ** 2 > lv.range * lv.range) continue;
         if (lv.slow) e.slow = Math.min(e.slow, lv.slow);
@@ -307,13 +309,17 @@ export function step(s: State): void {
       if (t.cd < 0) t.cd = 0;
       continue;
     }
-    t.cd = Math.max(0, t.cd - dt);
-    if (t.cd > 0) continue;
+    t.cd -= dt;
+    if (t.cd > 1e-9) continue;
     const target = pickTarget(s, x, y, lv.range);
-    if (!target) continue;
+    if (!target) {
+      t.cd = 0;
+      continue;
+    }
     const [tx, ty] = enemyPos(target);
     t.aim = Math.atan2(ty - y, tx - x);
-    t.cd = lv.cooldown;
+    // 남은 몫을 이어 가서 평균 간격이 적힌 값과 같게
+    t.cd += lv.cooldown;
     if (def.attack === 'beam') {
       damage(target, lv.damage, !!lv.pierce);
       s.events.push({ t: 'beam', x1: x, y1: y, x2: tx, y2: ty });
@@ -339,6 +345,7 @@ export function step(s: State): void {
     // 닿음
     if (sh.splash > 0) {
       for (const e of s.enemies) {
+        if (e.dist < ENTER_DIST) continue;
         const [ex, ey] = enemyPos(e);
         if ((ex - sh.tx) ** 2 + (ey - sh.ty) ** 2 <= sh.splash * sh.splash) damage(e, sh.damage, sh.pierce);
       }

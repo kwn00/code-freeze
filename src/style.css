@@ -133,7 +133,7 @@ body {
 .banner {
   position: absolute;
   left: 50%;
-  top: 12%;
+  bottom: 8px;
   transform: translateX(-50%);
   max-width: calc(100% - 24px);
   margin: 0;
@@ -280,13 +280,15 @@ body {
   position: fixed;
   inset: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 16px;
   background: rgba(var(--shade-rgb), 0.82);
   overflow-y: auto;
 }
 .panel {
+  /* margin:auto 로 가운데: 화면보다 길면 위가 잘리지 않고 스크롤된다 */
+  margin: auto 0;
   width: min(100%, 380px);
   padding: 18px 16px;
   background: var(--bg);
@@ -386,6 +388,14 @@ body {
   margin: 0 0 14px;
 }
 
+
+.dock__hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--cyan);
+  text-align: center;
+}
+
 /* ── 큰 화면: 독을 넓게, 글자 조금 크게 ── */
 @media (min-width: 768px) {
   :root {
@@ -407,23 +417,36 @@ body {
     width: 240px;
   }
 }
-/* 가로 폰: 높이가 모자라면 HUD·독을 얇게 */
-@media (max-height: 500px) {
+/* 가로 폰: 맵을 왼쪽에 화면 높이 가득, HUD 와 독은 오른쪽 세로 칸으로 */
+@media (orientation: landscape) and (max-height: 500px) {
+  .app {
+    display: grid;
+    grid-template-columns: 1fr minmax(260px, 42%);
+    grid-template-rows: auto 1fr;
+  }
+  .stage {
+    grid-column: 1;
+    grid-row: 1 / 3;
+  }
   .hud {
-    padding: 4px 10px;
+    grid-column: 2;
+    border-bottom: 0;
+    border-left: var(--px) solid var(--line);
   }
   .dock {
-    flex-direction: row;
-    padding: 4px 10px;
+    grid-column: 2;
+    flex-direction: column;
+    justify-content: flex-end;
+    border-top: 0;
+    border-left: var(--px) solid var(--line);
   }
-  .tower-btn canvas {
-    width: 20px;
-    height: 20px;
-  }
-  .tower-btn__name {
-    display: none;
-  }
+  .dock__towers,
+  .panel-tower,
   .dock__actions {
-    width: 200px;
+    width: auto;
+  }
+  .panel--title .story,
+  .panel--title .title-art {
+    display: none;
   }
 }
