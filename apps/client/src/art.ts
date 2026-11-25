@@ -154,6 +154,172 @@ const GOD_CLASS = [
   '..kkkkkkkkkkkkkkkkkk..',
 ];
 
+
+// ── 0.2.0 에 더한 그림 ──
+
+const TYPO = [
+  '.kkkkkk.',
+  'kyyyyyyk',
+  'kykyykyk',
+  'kyyyyyyk',
+  'kYyyyyYk',
+  '.kkkkkk.',
+  '.e.e.e.e',
+  'e.e.e.e.',
+];
+
+const FLAKY_TEST = [
+  '..kkkkkk..',
+  '..kllllk..',
+  '...klwk...',
+  '...klwk...',
+  '..klllwk..',
+  '.kllklllk.',
+  '.kgggkeek.',
+  'kggkggeeek',
+  'kgggkeeeek',
+  'kGGGGEEEEk',
+  '.kkkkkkkk.',
+];
+
+const RACE_CONDITION = [
+  '........k.k.',
+  '.........k..',
+  '.....kkkkkk.',
+  'yyy.koooOkwk',
+  '...kooooOkkk',
+  'yY.koOoOoOk.',
+  '...kOOOOOOk.',
+  'yyy.kkkkkk..',
+  '....k.k.k...',
+  '...k.k.k....',
+];
+
+const LEGACY_CODE = [
+  '.kkkkkkkkkkkkkkkkkkkk.',
+  'kllltltttttttttttttTTk',
+  'kllklkkkkkkkkkkkkktTTk',
+  'kltlGggGgggGgGGGGktTTk',
+  'ktlkGGGGGGGGGGGGGktTTk',
+  'kltkGkkGGGGGkkGGGktTTk',
+  'kttkGGkgkGkgkGGGGktTTk',
+  'kttkGGGkGGGkGGGGGktTTk',
+  'kttkGGGGkkkkkGGGGktTTk',
+  'kttkGgGggGgggGGGGktTTk',
+  'kttkGGGGGGGGGGGGGktTTk',
+  'kttkkkkkkkkkkkkkkktTTk',
+  'kTTTTTTTTTTTTTTryTTTTk',
+  'kTTTTTTTTTTTTTTTTTTTTk',
+  '.kkkkkkkkkkkkkkkkkkkk.',
+  '......kttttttttk......',
+  '...kkkkTTTTTTTTkkkk...',
+  '..kttttttttttttttttk..',
+  '..kTTTTTTTTTTTTTTTTk..',
+  '...kkkkkkkkkkkkkkkk...',
+];
+
+const SPAGHETTI = [
+  '................k.k.k.',
+  '...............klklklk',
+  '...............klklklk',
+  '...............klllllk',
+  '.........kkk....klnlk.',
+  '......kkkrrekkkk.klk..',
+  '....kkerrrrrreyykknk..',
+  '...kOeeeerreeeyyyklk..',
+  '..kOyyyeeeeeyyOyyOyk..',
+  '.kOYYkkyOOYYkkyOOYYk..',
+  '.kyyyYkkkykkkyyYyyyYk.',
+  'kOyyyykwkykwkYYOyyyyk.',
+  'kyOyEykkkOkkkOyyOyyyk.',
+  'kyyeeEYyyyOOOYyyyOOOk.',
+  'kyyEeEykkkkkyyYeeEYyk.',
+  '.kyYEyykYkYkyyyeeEyyk.',
+  '.kYyOyyyyYyOyyyEEEOk..',
+  '..kyyOyyOyyyOyyOyyk...',
+  '...kkyOOyyyyyOOyyk....',
+  '.....kkyyyyyyyykk.....',
+  '.......kkkkkkkk.......',
+];
+
+const MONOLITH = [
+  '...kkkkkkkkkkkkkkkk...',
+  '..knnnnnnnnnnnnnnnnk..',
+  '..kndddddddddddddmmk..',
+  '..kndddddddddddddmmk..',
+  '..kndeeeddddeeeddmmk..',
+  '..kndEEeddddeEEddmmk..',
+  '..kndddddddddddddmmk..',
+  '..kndddddddddddddmmk..',
+  '..kndgduduududdddmmk..',
+  '..kndmmmmmmmmmmmdmmk..',
+  '..kndddddddddddddmmk..',
+  '..kndudgduududdddmmk..',
+  '..kndmmmmmmmmmmmdmmk..',
+  '..kndddddddddddddmmk..',
+  '..kndgduduududdddmmk..',
+  '..kndmmmmmmmmmmmdmmk..',
+  '..kndddddddddddddmmk..',
+  '..kndudgduududdddmmk..',
+  '..kndmmmmmmmmmmmdmmk..',
+  '.kkndddddddddddddmmkk.',
+  'knnnnnnnnnnnnnnnnnnnnk',
+  'kmmmmmmmmmmmmmmmmmmmmk',
+  'kmmmmmmmmmmmmmmmmmmmmk',
+  '.kkkkkkkkkkkkkkkkkkkk.',
+];
+
+const TOWER_REGEX = [
+  '..............',
+  '.kkkkkkkkkkkk.',
+  'kppppppppppppk',
+  'kpkkkkkkkkkkPk',
+  'kpkkkkkkkkkkPk',
+  'kpkkpkpkkpkkPk',
+  'kpkpkkkpkkpkPk',
+  'kpkpkpkpkpkkPk',
+  'kpkkkkkkkkkkPk',
+  'kpkwkkkkkkkkPk',
+  'kPPPPPPPPPPPPk',
+  '.kkkkkPPkkkkk.',
+  'kmmmmmmmmmmmmk',
+  '.kkkkkkkkkkkk.',
+];
+
+const TOWER_FREEZE = [
+  '..............',
+  '..kkkkkkkkkk..',
+  '.kwwwwwwwwwlk.',
+  '.kwcccccccclk.',
+  '.kwcwccckcclk.',
+  '.kwccwckcccck.',
+  '.kwccckwcccck.',
+  '.kwcckcwccclk.',
+  '.kwckcccwcclk.',
+  '.kwccccccccck.',
+  '.kllcclccllck.',
+  '..kkkkkkkkkk..',
+  'kmmmmmmmmmmmmk',
+  '.kkkkkkkkkkkk.',
+];
+
+const TOWER_LB = [
+  '..k.......k...',
+  '..kk.....kk...',
+  '...k.....k....',
+  '...k.....k....',
+  '...k.....k....',
+  '..kkkkkkkkkk..',
+  '.kbbbbbbbbbbk.',
+  '.kbkkkkkkkkBk.',
+  '.kbkukgkukBBk.',
+  '.kbkkkkkkkkBk.',
+  '.kBBBBBBBBBBk.',
+  '..kkkkkkkkkk..',
+  'kmmmmmmmmmmmmk',
+  '.kkkkkkkkkkkk.',
+];
+
 export const ENEMY_ART: Record<EnemyId, string[]> = {
   bug: BUG,
   off_by_one: OFF_BY_ONE,
@@ -163,6 +329,12 @@ export const ENEMY_ART: Record<EnemyId, string[]> = {
   tech_debt: TECH_DEBT,
   boss_bug: recolor(bossBug(), { r: 'e', R: 'E' }),
   god_class: GOD_CLASS,
+  typo: TYPO,
+  flaky_test: FLAKY_TEST,
+  race_condition: RACE_CONDITION,
+  legacy_code: LEGACY_CODE,
+  spaghetti: SPAGHETTI,
+  monolith: MONOLITH,
 };
 
 // ── 타워: 14×14 책상 위 물건. 아래 두 줄은 받침(책상) ──
@@ -255,12 +427,21 @@ export const TOWER_ART: Record<TowerId, string[]> = {
   test: TOWER_TEST,
   ai: TOWER_AI,
   firewall: TOWER_FIREWALL,
+  regex: TOWER_REGEX,
+  freeze: TOWER_FREEZE,
+  lb: TOWER_LB,
 };
 
 /** 탄 */
 export const SHOT_ART: Partial<Record<TowerId, string[]>> = {
   log: ['.kkkk.', 'kwwwwk', 'kwyywk', 'kwwwwk', '.kkkk.'],
   test: ['.kkk.', 'kgwgk', 'kgggk', 'kgGgk', '.kkk.'],
+};
+
+/** 정규표현식·로드 밸런서가 맞힌 자리의 반짝임 */
+export const SPARK_ART: Partial<Record<TowerId, string[]>> = {
+  regex: ['...kk', '..kpk', '.kpk.', 'kPk..', 'kk...'],
+  lb: ['..k..', '.kck.', 'kcwck', '.kck.', '..k..'],
 };
 
 /** prod 서버 랙: 버그가 닿으면 안 되는 곳 */

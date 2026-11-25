@@ -20,13 +20,14 @@ export function bake(rows: readonly string[]): Sprite {
   return c;
 }
 
-function tint(src: Sprite, color: string): Sprite {
+function tint(src: Sprite, color: string, alpha = 1): Sprite {
   const c = document.createElement('canvas');
   c.width = src.width;
   c.height = src.height;
   const ctx = c.getContext('2d')!;
   ctx.drawImage(src, 0, 0);
   ctx.globalCompositeOperation = 'source-atop';
+  ctx.globalAlpha = alpha;
   ctx.fillStyle = color;
   ctx.fillRect(0, 0, c.width, c.height);
   return c;
@@ -35,6 +36,8 @@ function tint(src: Sprite, color: string): Sprite {
 export interface Sprites {
   enemy: Record<EnemyId, Sprite>;
   enemyFlash: Record<EnemyId, Sprite>;
+  /** 얼어 있을 때 (하늘색으로 덧칠) */
+  enemyFrozen: Record<EnemyId, Sprite>;
   tower: Record<TowerId, Sprite>;
   shot: Partial<Record<TowerId, Sprite>>;
   prod: Sprite;
@@ -44,9 +47,11 @@ export interface Sprites {
 export function makeSprites(): Sprites {
   const enemy = {} as Record<EnemyId, Sprite>;
   const enemyFlash = {} as Record<EnemyId, Sprite>;
+  const enemyFrozen = {} as Record<EnemyId, Sprite>;
   for (const id of ENEMY_IDS) {
     enemy[id] = bake(ENEMY_ART[id]);
     enemyFlash[id] = tint(enemy[id], '#ffffff');
+    enemyFrozen[id] = tint(enemy[id], '#89dceb', 0.55);
   }
   const tower = {} as Record<TowerId, Sprite>;
   for (const id of TOWER_IDS) tower[id] = bake(TOWER_ART[id]);
@@ -55,5 +60,5 @@ export function makeSprites(): Sprites {
     const art = SHOT_ART[id];
     if (art) shot[id] = bake(art);
   }
-  return { enemy, enemyFlash, tower, shot, prod: bake(PROD_SERVER), dev: bake(DEV) };
+  return { enemy, enemyFlash, enemyFrozen, tower, shot, prod: bake(PROD_SERVER), dev: bake(DEV) };
 }

@@ -21,6 +21,18 @@ export interface ReleaseNote {
 /** 최신 버전이 맨 위 */
 export const RELEASES: readonly ReleaseNote[] = [
   {
+    version: '1.0.0',
+    date: '2026-11-25',
+    title: '시즌 1: 30 스프린트와 야근',
+    items: [
+      '시즌 1 시작! 순위표에서 시즌별 기록을 볼 수 있어요.',
+      '스프린트가 30개, 3막으로 늘었어요. 깨면 퇴근할지 야근할지 골라요.',
+      '새 타워 3종(정규표현식·코드 프리즈·로드 밸런서)과 4단계가 생겼어요.',
+      '새 버그: 떼로 오는 오타, 사라지는 테스트, 다치면 빨라지는 버그.',
+      '순위표에 어떤 타워로 깼는지 그림으로 나와요.',
+    ],
+  },
+  {
     version: '0.1.1',
     date: '2026-11-25',
     title: '순위표가 새로워졌어요',
@@ -47,7 +59,7 @@ export const RELEASES: readonly ReleaseNote[] = [
 export const APP_VERSION = RELEASES[0]!.version;
 
 /** 리더보드 시즌 = 게임 버전의 메이저. 시즌을 바꾸려면 메이저를 올린다 (사용자 승인 필요) */
-export const LEADERBOARD_SEASON = 0;
+export const LEADERBOARD_SEASON = 1;
 
 function parseVersion(v: unknown): [number, number, number] | null {
   if (typeof v !== 'string') return null;
