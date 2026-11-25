@@ -13,7 +13,11 @@ import {
   RESUME_WINDOW_MS,
   SNAPSHOT_HZ,
   TICK_HZ,
+  WIN_WAVE,
   boardTowersOf,
+  clearedOf,
+  isOver,
+  retire,
   build,
   newGame,
   sell,
@@ -98,12 +102,18 @@ export class Game {
         this.speed = msg.s;
         this.dirty = true;
         break;
+      case 'retire':
+        // 스스로 끝내기 (퇴근): 지금까지 막은 스프린트로 기록을 남긴다
+        if (retire(s)) this.dirty = true;
+        break;
       case 'pause':
-        if (s.status === 'won' || s.status === 'lost') break;
+        if (isOver(s)) break;
         this.paused = msg.on;
         this.dirty = true;
         break;
       case 'restart':
+        // 하던 판이 있으면 그만둔 것으로 기록을 남기고 새 판 (스프린트를 하나도 막지 못했으면 남지 않는다)
+        this.finish(now, true);
         this.state = newGame();
         this.speed = 1;
         this.paused = false;
@@ -141,28 +151,41 @@ export class Game {
     }
     this.tickCount++;
     if (this.dirty && this.send && (s.status !== 'wave' || this.tickCount % TICKS_PER_SNAPSHOT === 0)) this.flush();
-    if ((s.status === 'won' || s.status === 'lost') && !this.reported) this.finish(now);
+    if (isOver(s) && !this.reported) this.finish(now);
   }
 
+  /** 마지막으로 보낸 타워 목록 (같으면 다시 보내지 않는다). null 이면 다음에 반드시 보낸다 */
+  private sentTowers: string | null = null;
+
   private flush(): void {
-    this.send?.(snapshotOf(this.state, this.speed, this.paused || this.away, this.pending));
+    const snap = snapshotOf(this.state, this.speed, this.paused || this.away, this.pending);
+    const towers = JSON.stringify(snap.towers);
+    if (towers === this.sentTowers) delete snap.towers;
+    else this.sentTowers = towers;
+    this.send?.(snap);
     this.pending = [];
     this.dirty = false;
   }
 
-  private finish(now: number): void {
+  /**
+   * 판의 기록을 남기고 결과를 보낸다 (한 판에 한 번). quiet 면 결과를 보내지 않는다 (다시 시작·닫힐 때).
+   * 판이 끝나지 않았어도(다시 시작, 오래 끊김) 막은 스프린트까지로 남긴다: 오래 한 판이 사라지지 않게.
+   */
+  finish(now = Date.now(), quiet = false): void {
+    if (this.reported) return;
     this.reported = true;
     const s = this.state;
-    const won = s.status === 'won';
-    const cleared = won ? s.wave : s.wave - 1;
+    const cleared = clearedOf(s);
+    const won = cleared >= WIN_WAVE;
     const report: RunReport = { name: this.name, won, cleared, lives: s.lives, kills: s.kills, towers: boardTowersOf(s), simSeconds: s.time, wallSeconds: (now - this.startedAt) / 1000 };
-    const result = (rank: number | null): RunResult => ({ won, cleared, lives: s.lives, kills: s.kills, rank });
+    const reason = s.status === 'lost' ? 'lost' : 'retired';
+    const result = (rank: number | null): RunResult => ({ won, reason, cleared, lives: s.lives, kills: s.kills, rank });
     const state = this.state;
     this.record(report)
       .catch(() => null)
       .then((rank) => {
         // 그사이 다시 시작했으면 옛 판의 결과는 보내지 않는다
-        if (this.state === state) this.send?.({ t: 'result', result: result(rank) });
+        if (!quiet && this.state === state) this.send?.({ t: 'result', result: result(rank) });
       });
   }
 
@@ -180,6 +203,7 @@ export class Game {
     this.away = false;
     this.lastActive = now;
     this.dirty = true;
+    this.sentTowers = null; // 새 연결의 화면은 타워를 모른다
     this.flush();
   }
 
@@ -235,10 +259,16 @@ export class GameManager {
       }
       const why = g.expired(now);
       if (why) {
+        g.finish(now, true); // 닫히는 판도 막은 스프린트까지 기록한다
         this.remove(g);
         this.onExpire(g, why);
       }
     }
+  }
+
+  /** 서버가 꺼질 때: 진행 중인 판들도 막은 스프린트까지 기록한다 (배포로 긴 판이 사라지지 않게) */
+  finishAll(now = Date.now()): void {
+    for (const g of this.games) g.finish(now, true);
   }
 
   stop(): void {

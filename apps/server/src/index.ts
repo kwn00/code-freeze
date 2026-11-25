@@ -277,6 +277,7 @@ async function shutdown(sig: string): Promise<void> {
   stopping = true;
   console.log(`[server] ${sig}: 종료합니다`);
   games.stop();
+  games.finishAll();
   for (const ws of wss.clients) ws.close(1012, 'restart');
   server.close();
   await Promise.race([leaderboard.close(), new Promise((r) => setTimeout(r, 8000))]);

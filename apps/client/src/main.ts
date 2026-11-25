@@ -12,7 +12,11 @@ import {
   START_LIVES,
   TOWER_IDS,
   TOWERS,
-  WAVES,
+  WIN_WAVE,
+  ACTS,
+  ENEMIES,
+  waveAt,
+  isUnlocked,
   canBuildAt,
   newGame,
   isCleanName,
@@ -126,20 +130,24 @@ function refreshUi(): void {
   $('lives').textContent = `${lives}`;
   $('lives').parentElement!.classList.toggle('is-low', lives <= START_LIVES / 4);
   $('money').textContent = `${money}`;
-  $('wave').textContent = `${s?.wave ?? 0}/${WAVES.length}`;
+  const w = s?.wave ?? 0;
+  $('wave').textContent = w > WIN_WAVE ? `야근 ${w - WIN_WAVE}` : `${w}/${WIN_WAVE}`;
   for (const [id, b] of towerBtns) {
-    b.disabled = !s || (money < TOWERS[id].levels[0]!.cost && buildKind !== id);
+    const locked = !!s && !isUnlocked(s, id);
+    b.classList.toggle('is-locked', locked);
+    b.title = locked ? `${TOWERS[id].name} — 스프린트 ${TOWERS[id].unlock} 부터` : `${TOWERS[id].name} — ${TOWERS[id].desc}`;
+    (b.querySelector('.tower-btn__cost') as HTMLElement).textContent = locked ? `🔒${TOWERS[id].unlock}` : `${TOWERS[id].levels[0]!.cost}`;
+    b.disabled = !s || locked || (money < TOWERS[id].levels[0]!.cost && buildKind !== id);
     b.classList.toggle('is-active', buildKind === id);
   }
   const waveBtn = $<HTMLButtonElement>('btn-wave');
   if (s?.status === 'build') {
-    const next = WAVES[s.wave];
-    waveBtn.disabled = !next || s.paused;
-    waveBtn.textContent = next ? `▶ git push · ${s.wave + 1}` : '▶';
-    waveBtn.title = next?.name ?? '';
+    waveBtn.disabled = s.paused;
+    waveBtn.textContent = `▶ git push · ${s.wave + 1}`;
+    waveBtn.title = waveAt(s.wave + 1).name;
   } else {
     waveBtn.disabled = true;
-    waveBtn.textContent = s?.status === 'wave' ? `⏳ ${WAVES[s.wave - 1]?.name ?? ''}` : '—';
+    waveBtn.textContent = s?.status === 'wave' ? `⏳ ${waveAt(s.wave).name}` : '—';
   }
   $('btn-speed').textContent = `×${s?.speed ?? 1}`;
   const hint = $('build-hint');
@@ -240,6 +248,10 @@ $('btn-speed').addEventListener('click', () => toggleSpeed());
 $('btn-pause').addEventListener('click', () => setPaused(true));
 $('btn-resume').addEventListener('click', () => setPaused(false));
 $('btn-quit').addEventListener('click', () => restart());
+$('btn-retire').addEventListener('click', () => {
+  send({ t: 'retire' });
+  $('screen-pause').classList.add('hidden');
+});
 $('btn-retry').addEventListener('click', () => restart());
 $('btn-start').addEventListener('click', () => startGame());
 nameInput.addEventListener('keydown', (ev) => {
@@ -364,16 +376,19 @@ $('btn-news-close').addEventListener('click', () => $('screen-news').classList.a
 function showResult(r: RunResult): void {
   if (typeof r !== 'object' || r === null || typeof r.won !== 'boolean') return;
   const code = $('result-code');
-  if (r.won) {
-    code.className = 'result-code is-good';
-    code.textContent = `$ git tag freeze-${new Date().getFullYear()}\n✔ All checks passed\n✔ prod uptime ${Math.round((r.lives / START_LIVES) * 100)}%`;
-    $('result-title').textContent = '🎉 코드 프리즈 성공!';
-    $('result-text').textContent = `버그 ${r.kills}마리를 막았어요. 이제 맘 편히 연휴를 보내세요.`;
+  const overtime = Math.max(0, r.cleared - WIN_WAVE);
+  if (r.reason === 'retired') {
+    code.className = `result-code ${r.won ? 'is-good' : ''}`;
+    code.textContent = `$ git commit -m "퇴근"\n✔ ${r.cleared} sprints merged${overtime ? ` (야근 ${overtime}일)` : ''}\n✔ prod uptime ${Math.round((r.lives / START_LIVES) * 100)}%`;
+    $('result-title').textContent = r.won ? '🎉 프리즈 성공, 퇴근!' : '🏠 퇴근했어요';
+    $('result-text').textContent = `스프린트 ${r.cleared}개를 막고 버그 ${r.kills}마리를 잡았어요.`;
   } else {
     code.className = 'result-code is-bad';
-    code.textContent = `HTTP/1.1 502 Bad Gateway\nprod is down. (sprint ${r.cleared + 1}/${WAVES.length})`;
-    $('result-title').textContent = '💥 장애 발생';
-    $('result-text').textContent = `스프린트 ${r.cleared}개를 막고 버그 ${r.kills}마리를 잡았지만 prod 가 내려갔어요.`;
+    code.textContent = `HTTP/1.1 502 Bad Gateway\nprod is down. (sprint ${r.cleared + 1})`;
+    $('result-title').textContent = r.won ? '🎉 프리즈 성공 · 야근 끝에 장애' : '💥 장애 발생';
+    $('result-text').textContent = r.won
+      ? `프리즈를 지키고 야근 ${overtime}일을 더 버텼어요. 버그 ${r.kills}마리를 잡았어요.`
+      : `스프린트 ${r.cleared}개를 막고 버그 ${r.kills}마리를 잡았지만 prod 가 내려갔어요.`;
   }
   board.setMine(typeof r.rank === 'number' ? { rank: r.rank, name: myName, cleared: r.cleared, lives: r.lives, kills: r.kills } : null);
   $('result-rank').textContent = typeof r.rank === 'number' ? `🏆 순위표 ${r.rank}등에 올랐어요!` : r.cleared < 1 ? '스프린트를 하나 이상 막으면 순위표에 올라요.' : '';
@@ -446,21 +461,28 @@ function handleEvents(now: number): void {
         break;
       case 'wave_start':
         audio.play('wave');
-        showBanner(`Sprint ${e.wave}: ${WAVES[e.wave - 1]?.name ?? ''}`, '', 2200);
+        {
+          const act = ACTS.find((a) => a.from === e.wave);
+          showBanner(act ? `${act.name}\nSprint ${e.wave}: ${waveAt(e.wave).name}` : `Sprint ${e.wave}: ${waveAt(e.wave).name}`, act ? 'good' : '', act ? 3200 : 2200);
+        }
         break;
       case 'boss':
         audio.play('boss');
-        showBanner(`⚠️ ${e.kind === 'god_class' ? 'God Class' : '왕버그'} 가 나타났어요!`, 'bad', 2200);
+        showBanner(`⚠️ 보스 ${ENEMIES[e.kind]?.name ?? ''} 가 나타났어요!`, 'bad', 2200);
         break;
       case 'wave_clear':
         audio.play('clear');
         showBanner(`✔ PR Merged! 보너스 +${e.bonus} SP`, 'good', 2200);
         break;
-      case 'won':
+      case 'freeze_done':
         audio.play('won');
+        showBanner(`🎉 코드 프리즈 성공! 이제부터는 야근이에요. 버틸 만큼 버티고 Ⅱ 메뉴에서 퇴근하세요`, 'good', 5000);
         break;
       case 'lost':
         audio.play('lost');
+        break;
+      case 'retired':
+        audio.play('clear');
         break;
     }
   }

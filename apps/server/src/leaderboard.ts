@@ -7,7 +7,7 @@
  * - 기록은 지우지 않는다 (CLAUDE.md). 시즌(LEADERBOARD_SEASON = 메이저 버전)이 바뀌면 기본 순위표에서만 빠진다.
  */
 import { randomUUID } from 'node:crypto';
-import { APP_VERSION, LEADERBOARD_SIZE, WAVES, isBoardTowers, isCleanName, type BoardEntry, type LeaderboardEntry } from '@code-freeze/shared';
+import { APP_VERSION, LEADERBOARD_SIZE, OLD_WIN_WAVE, WIN_WAVE, isBoardTowers, isCleanName, type BoardEntry, type LeaderboardEntry } from '@code-freeze/shared';
 import type { RunReport } from './game';
 
 export interface RunRecord extends BoardEntry {
@@ -31,6 +31,9 @@ const RETRY_MS = 15_000;
 /** 저장하지 못하고 쌓아 둘 수 있는 기록 수 (넘치면 오래된 것부터 버린다: 메모리를 지킨다) */
 const MAX_PENDING = 500;
 
+/** 막은 스프린트 수의 상한 (야근은 끝이 없지만, 말이 안 되는 값은 버린다) */
+const MAX_CLEARED = 9999;
+
 export function compareRuns(a: BoardEntry, b: BoardEntry): number {
   return b.cleared - a.cleared || b.lives - a.lives || b.kills - a.kills || a.endedAt - b.endedAt;
 }
@@ -41,12 +44,13 @@ export function isValidEntry(e: BoardEntry): boolean {
     isCleanName(e.name) &&
     Number.isInteger(e.cleared) &&
     e.cleared >= 1 &&
-    e.cleared <= WAVES.length &&
+    e.cleared <= MAX_CLEARED &&
     Number.isInteger(e.lives) &&
     e.lives >= 0 &&
     Number.isInteger(e.kills) &&
     e.kills >= 0 &&
-    e.won === (e.cleared === WAVES.length && e.lives > 0) &&
+    // 프리즈 성공: 지금은 30 스프린트, 0.1.x 는 10 스프린트였다 (예전 기록도 읽을 수 있게)
+    (e.won ? e.cleared >= OLD_WIN_WAVE : e.cleared < WIN_WAVE) &&
     Number.isFinite(e.endedAt) &&
     (e.towers === undefined || isBoardTowers(e.towers))
   );

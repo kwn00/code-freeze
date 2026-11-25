@@ -166,7 +166,10 @@ export class Renderer {
         if (e.splash > 0) this.fx.push({ kind: 'ring', x: e.x, y: e.y, r: e.splash, color: '#a6e3a1', born: now, life: 260 });
         else this.fx.push({ kind: 'pop', x: e.x, y: e.y, color: '#f9e2af', born: now, life: 140 });
       } else if (e.t === 'beam') {
-        this.fx.push({ kind: 'beam', x: e.x1, y: e.y1, x2: e.x2, y2: e.y2, color: '#89dceb', born: now, life: 160 });
+        const color = e.tower === 'regex' ? '#cba6f7' : e.tower === 'lb' ? '#94e2d5' : '#89dceb';
+        this.fx.push({ kind: 'beam', x: e.x1, y: e.y1, x2: e.x2, y2: e.y2, color, born: now, life: e.tower === 'ai' ? 160 : 200 });
+      } else if (e.t === 'stun') {
+        this.fx.push({ kind: 'ring', x: e.x, y: e.y, r: e.r, color: '#eff1f5', born: now, life: 320 });
       } else if (e.t === 'kill') {
         this.fx.push({ kind: 'pop', x: e.x, y: e.y, color: '#f38ba8', born: now, life: 220 });
         this.fx.push({ kind: 'text', x: e.x, y: e.y - 0.3, text: `+${e.bounty}`, color: '#f9e2af', born: now, life: 650 });
@@ -244,8 +247,9 @@ export class Renderer {
       if (y < -0.2) continue;
       const def = ENEMIES[e.kind];
       const wobble = Math.round(Math.sin(now / 120 + e.id) * 1) / TILE;
-      const img = e.flash > 0 ? this.spr.enemyFlash[e.kind] : this.spr.enemy[e.kind];
-      this.blit(img, x, y + wobble);
+      const img = e.flash > 0 ? this.spr.enemyFlash[e.kind] : e.stunLeft > 0 ? this.spr.enemyFrozen[e.kind] : this.spr.enemy[e.kind];
+      // 깨지는 테스트가 사라져 있는 동안은 반투명 (겨냥되지 않는다)
+      this.blit(img, x, y + (e.stunLeft > 0 ? 0 : wobble), e.age < 0 ? 0.3 : 1);
       if (e.burnLeft > 0 && Math.floor(now / 100) % 2 === 0) {
         ctx.fillStyle = '#fab387';
         ctx.fillRect(this.px(x, 'x') - sc, this.px(y, 'y') - (img.height / 2 + 3) * sc, 2 * sc, 2 * sc);

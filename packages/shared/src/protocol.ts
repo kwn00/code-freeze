@@ -8,7 +8,7 @@
 import { SPEEDS, type Speed } from './constants';
 import { sanitizeName } from './names';
 import { COLS, ENEMY_IDS, ROWS, TOWERS, TOWER_IDS, type EnemyId, type TowerId } from './content';
-import type { GameEvent, State, Status } from './sim';
+import { isPhased, type GameEvent, type State, type Status } from './sim';
 
 // ── 클라이언트 → 서버 ──
 
@@ -21,6 +21,7 @@ export type ClientMsg =
   | { t: 'speed'; s: Speed }
   | { t: 'pause'; on: boolean }
   | { t: 'restart' }
+  | { t: 'retire' }
   | { t: 'ping' };
 
 const isInt = (v: unknown, min: number, max: number): v is number => typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max;
@@ -56,6 +57,7 @@ export function parseClientMsg(raw: string): ClientMsg | null {
       return typeof m.on === 'boolean' ? { t: 'pause', on: m.on } : null;
     case 'wave':
     case 'restart':
+    case 'retire':
     case 'ping':
       return { t: m.t };
     default:
@@ -65,8 +67,11 @@ export function parseClientMsg(raw: string): ClientMsg | null {
 
 // ── 서버 → 클라이언트 ──
 
-/** 버그 한 마리: [id, 종류 번호, 간 거리×100, 체력(올림), 최대 체력, 상태 비트(1 둔화, 2 화상, 4 번쩍)] */
-export type EnemyRow = [number, number, number, number, number, number];
+/**
+ * 버그 한 마리: [id, 종류 번호, 간 거리×100, 남은 체력 %(1~100, 올림), 상태 비트(1 둔화, 2 화상, 4 번쩍, 8 사라짐, 16 얼음)].
+ * 체력은 막대를 그리는 데만 쓰므로 비율만 보낸다 (전송량을 줄인다. 0.2.0)
+ */
+export type EnemyRow = [number, number, number, number, number];
 /** 타워 하나: [id, 종류 번호, 칸 x, 칸 y, 단계, 쓴 값, 그중 원가로 돌려받을 수 있는 값] */
 export type TowerRow = [number, number, number, number, number, number, number];
 /** 탄 하나: [쏜 타워 종류 번호, x×100, y×100] */
@@ -82,14 +87,18 @@ export interface Snapshot {
   paused: boolean;
   kills: number;
   enemies: EnemyRow[];
-  towers: TowerRow[];
+  /** 타워 목록. 지난 상태와 같으면 빠진다 (화면은 마지막으로 받은 것을 그대로 쓴다. 전송량을 줄인다) */
+  towers?: TowerRow[];
   shots: ShotRow[];
   /** 지난 상태 뒤에 일어난 일 (효과·소리용) */
   events: GameEvent[];
 }
 
 export interface RunResult {
+  /** 프리즈 성공 (WIN_WAVE 스프린트를 막았다) */
   won: boolean;
+  /** 어떻게 끝났나: prod 가 내려갔다 / 스스로 퇴근했다 */
+  reason: 'lost' | 'retired';
   /** 막은 스프린트 수 */
   cleared: number;
   lives: number;
@@ -165,6 +174,17 @@ export type ServerMsg =
   | { t: 'error'; code: 'version_mismatch' | 'bad_token' | 'resume_failed' | 'replaced' | 'idle' | 'rate_limited' | 'server_full' | 'bad_message'; message: string }
   | { t: 'pong' };
 
+/** 효과용 좌표는 소수 둘째 자리까지만 보낸다 (그리기에는 충분하고, 전송량이 크게 준다) */
+function roundEvent(e: GameEvent): GameEvent {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(e)) out[k] = typeof v === 'number' && !Number.isInteger(v) ? Math.round(v * 100) / 100 : v;
+  return out as GameEvent;
+}
+
+export function towerRowsOf(s: State): TowerRow[] {
+  return s.towers.map((t) => [t.id, TOWER_IDS.indexOf(t.kind), t.col, t.row, t.level, t.spent, t.fresh]);
+}
+
 export function snapshotOf(s: State, speed: Speed, paused: boolean, events: GameEvent[]): Snapshot {
   return {
     t: 'state',
@@ -179,13 +199,12 @@ export function snapshotOf(s: State, speed: Speed, paused: boolean, events: Game
       e.id,
       ENEMY_IDS.indexOf(e.kind),
       Math.round(e.dist * 100),
-      Math.max(0, Math.ceil(e.hp)),
-      e.maxHp,
-      (e.slow < 1 ? 1 : 0) | (e.burnLeft > 0 ? 2 : 0) | (e.flash > 0 ? 4 : 0),
+      Math.max(1, Math.min(100, Math.ceil((e.hp / e.maxHp) * 100))),
+      (e.slow < 1 ? 1 : 0) | (e.burnLeft > 0 ? 2 : 0) | (e.flash > 0 ? 4 : 0) | (isPhased(e) ? 8 : 0) | (e.stunLeft > 0 ? 16 : 0),
     ]),
-    towers: s.towers.map((t) => [t.id, TOWER_IDS.indexOf(t.kind), t.col, t.row, t.level, t.spent, t.fresh]),
+    towers: towerRowsOf(s),
     shots: s.shots.map((sh) => [TOWER_IDS.indexOf(sh.tower), Math.round(sh.x * 100), Math.round(sh.y * 100)]),
-    events,
+    events: events.map(roundEvent),
   };
 }
 

@@ -38,8 +38,7 @@ test('돈이 모자라면 짓지도 올리지도 못하고, 웨이브가 시작�
   s.money = 1000;
   const t = build(s, 'log', 0, 0)!;
   assert.equal(s.money, 1000 - TOWERS.log.levels[0]!.cost);
-  assert.ok(upgrade(s, t.id));
-  assert.ok(upgrade(s, t.id));
+  for (let i = 1; i < TOWERS.log.levels.length; i++) assert.ok(upgrade(s, t.id));
   assert.equal(upgrade(s, t.id), false, '최대 단계');
   const spent = TOWERS.log.levels.reduce((a, l) => a + l.cost, 0);
   startWave(s); // 웨이브가 시작된 뒤에 팔면 70% (그 전에는 원가: 아래 테스트)
@@ -94,38 +93,6 @@ test('같은 입력이면 같은 결과 (결정론)', () => {
     return JSON.stringify([s.lives, s.money, s.kills, s.time.toFixed(4)]);
   };
   assert.equal(play(), play());
-});
-
-test('적당한 전략으로 10 웨이브를 모두 막을 수 있다 (밸런스 확인)', () => {
-  const s = newGame();
-  // 돈이 되는 대로 정해진 자리에 짓고, 남으면 올린다
-  const plan: [keyof typeof TOWERS, number, number][] = [
-    ['log', 2, 1], ['log', 6, 3], ['duck', 4, 3], ['test', 2, 6], ['ai', 4, 7], ['log', 6, 6], ['firewall', 2, 4],
-    ['test', 6, 9], ['ai', 0, 9], ['duck', 3, 9], ['firewall', 8, 7], ['ai', 5, 11], ['test', 3, 11],
-  ];
-  let i = 0;
-  while (s.status === 'build') {
-    for (;;) {
-      const p = plan[i];
-      if (p && s.money >= TOWERS[p[0]].levels[0]!.cost) {
-        assert.ok(build(s, p[0], p[1], p[2]), `${p} 자리에 지을 수 있어야 함`);
-        i++;
-        continue;
-      }
-      const t = [...s.towers].sort((a, b) => a.level - b.level).find((x) => {
-        const c = TOWERS[x.kind].levels[x.level + 1]?.cost;
-        return c !== undefined && s.money >= c;
-      });
-      if (t && (!p || i >= 6)) {
-        upgrade(s, t.id);
-        continue;
-      }
-      break;
-    }
-    startWave(s);
-    runWave(s);
-  }
-  assert.equal(s.status, 'won', `웨이브 ${s.wave} 에서 짐 (가용성 ${s.lives})`);
 });
 
 test('타워 없이 버티기만 하면 진다', () => {

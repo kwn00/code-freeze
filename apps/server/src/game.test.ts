@@ -2,12 +2,17 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { IDLE_LIMIT_MS, RESUME_WINDOW_MS, START_MONEY, TOWERS, type ServerMsg, type Snapshot } from '@code-freeze/shared';
 import { Game, GameManager, type RunReport } from './game';
-import { Leaderboard, MemoryStore } from './leaderboard';
+import { Leaderboard, MemoryStore, isValidEntry } from './leaderboard';
 
 function setup(record: (r: RunReport) => Promise<number | null> = async () => null) {
   const out: ServerMsg[] = [];
   const g = new Game('tester', (m) => out.push(m), record, 0);
-  const last = (): Snapshot => out.filter((m): m is Snapshot => m.t === 'state').at(-1)!;
+  const snaps = (): Snapshot[] => out.filter((m): m is Snapshot => m.t === 'state');
+  // 타워는 바뀔 때만 오므로, 마지막으로 받은 타워 목록을 함께 돌려준다
+  const last = (): Snapshot & { towers: NonNullable<Snapshot['towers']> } => {
+    const all = snaps();
+    return { ...all.at(-1)!, towers: all.filter((m) => m.towers).at(-1)?.towers ?? [] };
+  };
   return { g, out, last };
 }
 
@@ -140,4 +145,75 @@ test('판 하나의 오류는 그 판만 닫고 소켓 정리 콜백을 부른�
   m.stop();
   assert.equal(m.count, 0);
   assert.deepEqual(expired, ['idle']);
+});
+
+test('0.2.0: 퇴근하면 막은 스프린트로 결과를 남긴다', async () => {
+  const reports: RunReport[] = [];
+  const { g, out } = setup(async (r) => {
+    reports.push(r);
+    return 3;
+  });
+  g.state.wave = 33;
+  g.handle({ t: 'retire' });
+  g.tick(1e6);
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(reports.length, 1);
+  assert.equal(reports[0]!.cleared, 33);
+  assert.equal(reports[0]!.won, true, '30 스프린트를 넘겼으면 프리즈 성공');
+  const res = out.find((m) => m.t === 'result');
+  assert.ok(res && res.t === 'result' && res.result.reason === 'retired' && res.result.rank === 3);
+});
+
+test('0.2.0: 다시 시작하거나 판이 닫혀도 막은 스프린트는 기록된다 (결과 메시지는 보내지 않는다)', async () => {
+  const reports: RunReport[] = [];
+  const rec = async (r: RunReport): Promise<number | null> => {
+    reports.push(r);
+    return null;
+  };
+  const { g, out } = setup(rec);
+  g.state.wave = 7;
+  g.handle({ t: 'restart' });
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(reports.at(-1)?.cleared, 7);
+  assert.equal(out.filter((m) => m.t === 'result').length, 0);
+  assert.equal(g.state.wave, 0);
+  // 닫히는 판
+  const m = new GameManager();
+  const g2 = new Game('y', () => {}, rec, 0);
+  g2.state.wave = 4;
+  m.add(g2);
+  g2.detach(0);
+  m.tickAll(10 * 60 * 1000 + 1000);
+  m.stop();
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(reports.at(-1)?.cleared, 4);
+});
+
+test('리더보드: 0.1.x 의 프리즈 성공 기록(10 스프린트)은 그대로 읽고, 30 스프린트부터는 반드시 성공', () => {
+  const lb = new Leaderboard(new MemoryStore(), 0);
+  const base = { name: 'a', lives: 5, kills: 10, simSeconds: 100, wallSeconds: 100, towers: [] as [number, number][] };
+  assert.equal(lb.record({ ...base, cleared: 30, won: false }), null, '30 인데 성공이 아니면 버린다');
+  assert.equal(lb.record({ ...base, cleared: 31, won: true }), 1);
+  assert.ok(lb.record({ ...base, cleared: 10, won: false }));
+});
+
+test('리더보드: 저장소에서 읽은 0.1.x 기록(10 스프린트 성공)도 모양 검사를 통과한다', () => {
+  assert.equal(isValidEntry({ name: '옛기록', cleared: 10, lives: 3, kills: 100, won: true, endedAt: 1 }), true);
+  assert.equal(isValidEntry({ name: '옛기록', cleared: 9, lives: 3, kills: 100, won: true, endedAt: 1 }), false);
+});
+
+test('서버가 꺼질 때 진행 중인 판도 기록한다', async () => {
+  const reports: RunReport[] = [];
+  const m = new GameManager();
+  const g = new Game('z', () => {}, async (r) => {
+    reports.push(r);
+    return null;
+  }, 0);
+  g.state.wave = 9;
+  m.add(g);
+  m.finishAll(1000);
+  m.stop();
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(reports.length, 1);
+  assert.equal(reports[0]!.cleared, 9);
 });

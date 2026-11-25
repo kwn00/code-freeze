@@ -142,6 +142,7 @@ body {
   background: rgba(var(--shade-rgb), 0.88);
   box-shadow: 0 0 0 var(--px) var(--line), 0 0 0 calc(var(--px) * 2) var(--panel);
   pointer-events: none;
+  white-space: pre-line;
   animation: pop 0.25s steps(3);
 }
 .banner--bad {
@@ -167,8 +168,19 @@ body {
 }
 .dock__towers {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+@media (min-width: 640px) and (min-height: 501px) {
+  .dock__towers {
+    grid-template-columns: repeat(8, 1fr);
+  }
+}
+.tower-btn.is-locked canvas {
+  filter: grayscale(1) brightness(0.6);
+}
+.tower-btn.is-locked .tower-btn__cost {
+  color: var(--muted) !important;
 }
 .tower-btn {
   display: flex;
@@ -771,5 +783,28 @@ body {
   .panel--title .story,
   .panel--title .title-art {
     display: none;
+  }
+}
+
+/* 좁은 화면: 두 줄이 되므로 버튼을 가로로 눕혀 높이를 아낀다 (그림 왼쪽, 이름과 값 오른쪽) */
+@media (max-width: 639px), (max-height: 500px) {
+  .tower-btn {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 3px;
+    row-gap: 0;
+    align-items: center;
+    justify-items: start;
+    padding: 3px 4px;
+    line-height: 1.2;
+  }
+  .tower-btn canvas {
+    grid-row: 1 / 3;
+    width: 24px !important;
+    height: 24px !important;
+  }
+  .tower-btn__name {
+    display: block !important;
   }
 }
