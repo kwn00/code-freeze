@@ -31,7 +31,7 @@ test('길 위에는 지을 수 없고, 같은 칸에 두 번 지을 수 없다',
   assert.equal(canBuildAt(s, 0.5, 0), false);
 });
 
-test('돈이 모자라면 짓지도 올리지도 못하고, 팔면 70% 를 돌려받는다', () => {
+test('돈이 모자라면 짓지도 올리지도 못하고, 웨이브가 시작된 뒤에 팔면 70% 를 돌려받는다', () => {
   const s = newGame();
   s.money = 10;
   assert.equal(build(s, 'ai', 0, 0), null);
@@ -42,6 +42,7 @@ test('돈이 모자라면 짓지도 올리지도 못하고, 팔면 70% 를 돌�
   assert.ok(upgrade(s, t.id));
   assert.equal(upgrade(s, t.id), false, '최대 단계');
   const spent = TOWERS.log.levels.reduce((a, l) => a + l.cost, 0);
+  startWave(s); // 웨이브가 시작된 뒤에 팔면 70% (그 전에는 원가: 아래 테스트)
   const before = s.money;
   assert.ok(sell(s, t.id));
   assert.equal(s.money, before + Math.floor(spent * 0.7));
@@ -136,3 +137,38 @@ test('타워 없이 버티기만 하면 진다', () => {
   assert.equal(s.status, 'lost');
 });
 
+
+test('웨이브 전에 지은 것은 웨이브 전에 팔면 원가로, 웨이브가 시작되면 70%', () => {
+  const s = newGame();
+  const cost = TOWERS.log.levels[0]!.cost;
+  const up = TOWERS.log.levels[1]!.cost;
+  // 짓고 바로 팔기: 원가
+  let t = build(s, 'log', 0, 0)!;
+  assert.ok(sell(s, t.id));
+  assert.equal(s.money, START_MONEY);
+  // 짓고 올리고 팔기: 둘 다 원가
+  t = build(s, 'log', 0, 0)!;
+  upgrade(s, t.id);
+  sell(s, t.id);
+  assert.equal(s.money, START_MONEY);
+  // 웨이브를 넘긴 타워: 70%
+  t = build(s, 'log', 0, 0)!;
+  startWave(s);
+  const before = s.money;
+  sell(s, t.id);
+  assert.equal(s.money, before + Math.floor(cost * 0.7));
+  // 웨이브 중에 지은 것도 70%
+  const t2 = build(s, 'log', 0, 0)!;
+  const b2 = s.money;
+  sell(s, t2.id);
+  assert.equal(s.money, b2 + Math.floor(cost * 0.7));
+  // 웨이브를 넘긴 타워를 다음 짓는 시간에 올렸다면: 올린 값만 원가
+  s.status = 'build';
+  const t3 = build(s, 'log', 0, 0)!;
+  startWave(s);
+  s.status = 'build';
+  s.money = 1000;
+  upgrade(s, t3.id);
+  sell(s, t3.id);
+  assert.equal(s.money, 1000 - up + up + Math.floor(cost * 0.7));
+});

@@ -13,6 +13,7 @@ import {
   RESUME_WINDOW_MS,
   SNAPSHOT_HZ,
   TICK_HZ,
+  boardTowersOf,
   build,
   newGame,
   sell,
@@ -20,6 +21,7 @@ import {
   startWave,
   step,
   upgrade,
+  type BoardTower,
   type ClientMsg,
   type GameEvent,
   type RunResult,
@@ -35,6 +37,7 @@ export interface RunReport {
   cleared: number;
   lives: number;
   kills: number;
+  towers: BoardTower[];
   /** 이 판에서 웨이브가 실제로 돈 서버 시간 (초). 빨리 감기 상한을 넘지 않았는지 보는 근거 */
   simSeconds: number;
   wallSeconds: number;
@@ -152,7 +155,7 @@ export class Game {
     const s = this.state;
     const won = s.status === 'won';
     const cleared = won ? s.wave : s.wave - 1;
-    const report: RunReport = { name: this.name, won, cleared, lives: s.lives, kills: s.kills, simSeconds: s.time, wallSeconds: (now - this.startedAt) / 1000 };
+    const report: RunReport = { name: this.name, won, cleared, lives: s.lives, kills: s.kills, towers: boardTowersOf(s), simSeconds: s.time, wallSeconds: (now - this.startedAt) / 1000 };
     const result = (rank: number | null): RunResult => ({ won, cleared, lives: s.lives, kills: s.kills, rank });
     const state = this.state;
     this.record(report)

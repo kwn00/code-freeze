@@ -95,12 +95,14 @@
       </div>
     </section>
 
-    <section id="screen-board" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="board-title">
-      <div class="panel panel--list">
-        <h2 id="board-title">🏆 git log --top</h2>
-        <p id="board-note" class="muted"></p>
-        <ol id="board-list" class="board"></ol>
-        <button id="btn-board-close" class="btn btn--wide" type="button">닫기</button>
+    <section id="screen-board" class="screen screen--board hidden" role="dialog" aria-modal="true" aria-labelledby="board-title">
+      <div class="panel panel--board">
+        <div class="board__head">
+          <h2 id="board-title" class="board__title">🏆 git log --top <small>순위표</small></h2>
+          <button id="btn-board-close" class="board__close" type="button" aria-label="순위표 닫기">✕</button>
+        </div>
+        <p id="board-note" class="board__note hidden"></p>
+        <div id="board-body" class="board__body" aria-live="polite" tabindex="0"></div>
       </div>
     </section>
 

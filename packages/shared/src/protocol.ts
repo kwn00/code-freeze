@@ -7,7 +7,7 @@
  */
 import { SPEEDS, type Speed } from './constants';
 import { sanitizeName } from './names';
-import { COLS, ENEMY_IDS, ROWS, TOWER_IDS, type EnemyId, type TowerId } from './content';
+import { COLS, ENEMY_IDS, ROWS, TOWERS, TOWER_IDS, type EnemyId, type TowerId } from './content';
 import type { GameEvent, State, Status } from './sim';
 
 // ── 클라이언트 → 서버 ──
@@ -67,8 +67,8 @@ export function parseClientMsg(raw: string): ClientMsg | null {
 
 /** 버그 한 마리: [id, 종류 번호, 간 거리×100, 체력(올림), 최대 체력, 상태 비트(1 둔화, 2 화상, 4 번쩍)] */
 export type EnemyRow = [number, number, number, number, number, number];
-/** 타워 하나: [id, 종류 번호, 칸 x, 칸 y, 단계, 쓴 값] */
-export type TowerRow = [number, number, number, number, number, number];
+/** 타워 하나: [id, 종류 번호, 칸 x, 칸 y, 단계, 쓴 값, 그중 원가로 돌려받을 수 있는 값] */
+export type TowerRow = [number, number, number, number, number, number, number];
 /** 탄 하나: [쏜 타워 종류 번호, x×100, y×100] */
 export type ShotRow = [number, number, number];
 
@@ -98,6 +98,9 @@ export interface RunResult {
   rank: number | null;
 }
 
+/** 판이 끝날 때 서 있던 타워 하나: [종류 번호(TOWER_IDS), 단계(0부터)] */
+export type BoardTower = [number, number];
+
 export interface BoardEntry {
   name: string;
   cleared: number;
@@ -105,6 +108,54 @@ export interface BoardEntry {
   kills: number;
   won: boolean;
   endedAt: number;
+  /** 판이 끝날 때 서 있던 타워들 (종류 순, 단계 높은 것부터). 이 값을 남기기 전의 기록에는 없다 */
+  towers?: BoardTower[];
+  /** 기록을 세운 게임 버전 (x.y.z) */
+  version?: string;
+}
+
+/** 순위표 한 줄 (응답) */
+export interface LeaderboardEntry extends BoardEntry {
+  rank: number;
+}
+
+/** GET /api/leaderboard 의 응답 */
+export interface LeaderboardResponse {
+  /** 보고 있는 시즌 (= 지금 시즌) */
+  season: number;
+  /** false 면 기록이 서버 메모리에만 있어서 서버가 다시 시작되면 사라진다 */
+  persistent: boolean;
+  /** true 면 저장된 기록을 아직 불러오지 못했다 (DB 가 깨어나는 중). 지금 목록은 일부일 수 있다 */
+  loading: boolean;
+  entries: LeaderboardEntry[];
+}
+
+/** 순위표에 보여 주는 개수 */
+export const LEADERBOARD_SIZE = 50;
+
+/** 서버가 만든 타워 목록 모양인지 (저장·응답·화면에서 함께 쓴다) */
+export function isBoardTowers(v: unknown): v is BoardTower[] {
+  return (
+    Array.isArray(v) &&
+    v.length <= COLS * ROWS &&
+    v.every(
+      (t) =>
+        Array.isArray(t) &&
+        t.length === 2 &&
+        Number.isInteger(t[0]) &&
+        TOWER_IDS[t[0] as number] !== undefined &&
+        Number.isInteger(t[1]) &&
+        t[1] >= 0 &&
+        t[1] < TOWERS[TOWER_IDS[t[0] as number]!].levels.length,
+    )
+  );
+}
+
+/** 판의 타워들 → 순위표에 남길 모양 (종류 순, 단계 높은 것부터) */
+export function boardTowersOf(s: State): BoardTower[] {
+  return s.towers
+    .map((t): BoardTower => [TOWER_IDS.indexOf(t.kind), t.level])
+    .sort((a, b) => a[0] - b[0] || b[1] - a[1]);
 }
 
 export type ServerMsg =
@@ -132,7 +183,7 @@ export function snapshotOf(s: State, speed: Speed, paused: boolean, events: Game
       e.maxHp,
       (e.slow < 1 ? 1 : 0) | (e.burnLeft > 0 ? 2 : 0) | (e.flash > 0 ? 4 : 0),
     ]),
-    towers: s.towers.map((t) => [t.id, TOWER_IDS.indexOf(t.kind), t.col, t.row, t.level, t.spent]),
+    towers: s.towers.map((t) => [t.id, TOWER_IDS.indexOf(t.kind), t.col, t.row, t.level, t.spent, t.fresh]),
     shots: s.shots.map((sh) => [TOWER_IDS.indexOf(sh.tower), Math.round(sh.x * 100), Math.round(sh.y * 100)]),
     events,
   };

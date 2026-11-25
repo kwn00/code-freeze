@@ -92,7 +92,7 @@ test('판이 끝나면 결과를 한 번만 남기고 보낸다', async () => {
 
 test('리더보드: 서버가 만든 기록만, 순위대로, 스프린트 0 은 제외', () => {
   const lb = new Leaderboard(new MemoryStore(), 0);
-  const base = { name: 'a', won: false, lives: 5, kills: 10, simSeconds: 100, wallSeconds: 100 };
+  const base = { name: 'a', won: false, lives: 5, kills: 10, simSeconds: 100, wallSeconds: 100, towers: [[0, 2], [1, 0]] as [number, number][] };
   assert.equal(lb.record({ ...base, cleared: 0 }), null);
   assert.equal(lb.record({ ...base, cleared: 3 }), 1);
   assert.equal(lb.record({ ...base, name: 'b', cleared: 5 }), 1);
@@ -121,7 +121,7 @@ test('리더보드: 종료할 때 돌고 있던 저장을 기다리고 남은 �
     },
   };
   const lb = new Leaderboard(store as never, 0);
-  const base = { won: false, lives: 5, kills: 10, simSeconds: 100, wallSeconds: 100, cleared: 2 };
+  const base = { won: false, lives: 5, kills: 10, simSeconds: 100, wallSeconds: 100, cleared: 2, towers: [] as [number, number][] };
   for (const name of ['a', 'b', 'c']) lb.record({ ...base, name });
   await lb.close();
   assert.deepEqual(saved, ['a', 'b', 'c']);

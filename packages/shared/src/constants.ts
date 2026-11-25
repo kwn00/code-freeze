@@ -1,5 +1,5 @@
 /** 서버와 클라이언트가 주고받는 내용의 모양이나 뜻이 바뀔 때만 올린다 (게임 버전과 별개). 다르면 서버가 접속을 거절한다 */
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
 
 /** 닉네임 최대 길이 (글자) */
 export const NAME_MAX_LEN = 12;

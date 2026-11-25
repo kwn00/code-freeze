@@ -474,7 +474,6 @@ body {
 .panel--list h2 {
   text-align: center;
 }
-.board,
 .news {
   flex: 1;
   min-height: 0;
@@ -484,22 +483,6 @@ body {
   background: var(--bg-2);
   box-shadow: 0 0 0 var(--px) var(--line);
   font-size: 12px;
-}
-.board {
-  padding-left: 34px;
-}
-.board li {
-  padding: 3px 0;
-  border-bottom: 1px solid var(--panel);
-}
-.board li span {
-  color: var(--muted);
-}
-.board li.is-won b {
-  color: var(--green);
-}
-.board li.is-me {
-  background: #2b3a33;
 }
 .news h3 {
   margin: 4px 0;
@@ -530,6 +513,212 @@ body {
   background: rgba(var(--shade-rgb), 0.9);
   box-shadow: 0 0 0 var(--px) var(--line);
   z-index: 5;
+}
+
+.panel.panel--board {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 100%;
+  padding: 0;
+  text-align: left;
+}
+.board__head {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px 8px 14px;
+}
+.board__title {
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 18px;
+}
+.board__title small {
+  font-size: 11px;
+  color: var(--muted);
+  text-shadow: none;
+  /* 좁은 화면에서 단어 중간이 끊기지 않게: 자리가 없으면 통째로 다음 줄로 */
+  white-space: nowrap;
+}
+.board__close {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text);
+  background: rgb(var(--btn-rgb));
+  border: var(--px) solid var(--line);
+  border-radius: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.board__close:focus-visible,
+.board__retry:focus-visible {
+  outline: var(--px) solid var(--yellow);
+  outline-offset: var(--px);
+}
+/* 목록은 키보드로 스크롤할 수 있게 Tab 이 멈춘다. 테두리는 안쪽으로 (패널 밖으로 잘리지 않게) */
+.board__body:focus-visible {
+  outline: var(--px) solid var(--yellow);
+  outline-offset: calc(var(--px) * -1);
+}
+.board__note {
+  flex: none;
+  margin: 0;
+  padding: 4px 14px 6px;
+  font-size: 11px;
+  color: var(--muted);
+  word-break: keep-all;
+}
+.board__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 10px 12px;
+}
+.board__msg {
+  margin: 12px 4px;
+  padding: 18px 8px;
+  text-align: center;
+  color: var(--muted);
+  background: var(--bg-2);
+  border: var(--px) solid var(--line);
+  word-break: keep-all;
+}
+.board__msg--error {
+  color: var(--red);
+}
+.board__retry {
+  display: block;
+  width: 100%;
+}
+.rows {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.row {
+  display: grid;
+  grid-template-columns: 2.4em minmax(0, 1fr);
+  gap: 0 8px;
+  align-items: center;
+  padding: 6px 8px;
+  background: var(--bg-2);
+  border: var(--px) solid var(--line);
+}
+.row__rank {
+  grid-row: 1 / span 10; /* 이름 · 사람별 아이템 줄(최대 8) · 기록 줄을 모두 덮는다 */
+  text-align: center;
+  font-size: 16px;
+  color: var(--muted);
+}
+.row__rank--1 {
+  color: var(--yellow);
+}
+.row__rank--2 {
+  color: var(--text);
+}
+.row__rank--3 {
+  color: var(--orange);
+}
+.row__names {
+  min-width: 0;
+  overflow-wrap: anywhere; /* 12자 닉네임 4명이어도 줄바꿈으로 처리 */
+  color: var(--text);
+}
+.row__share {
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.board__legend {
+  margin: 8px 4px 0;
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+  word-break: keep-all; /* 좁은 화면에서 한글 단어 중간이 끊기지 않게 */
+}
+.row__names em {
+  margin-left: 8px;
+  font-style: normal;
+  font-size: 10px;
+  color: var(--green);
+}
+.row__items {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px;
+  margin: 2px 0;
+  font-size: 11px;
+  line-height: 15px;
+}
+.row__who {
+  max-width: 7em;
+  margin-right: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  color: var(--muted);
+}
+.row__item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+  padding: 0 2px;
+  white-space: nowrap;
+  background: var(--bg);
+}
+.row__item small {
+  font-size: 9px;
+  color: var(--muted);
+}
+.row__item b {
+  font-weight: normal;
+  font-size: 10px;
+  color: var(--yellow);
+}
+.row__item--passive {
+  background: rgba(var(--btn-rgb), 0.85);
+}
+.row__item--evolved b {
+  color: var(--purple);
+}
+.row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 10px;
+  font-size: 11px;
+  color: var(--yellow);
+}
+.row--mine {
+  border-color: var(--green);
+  background: #2b3a33;
+}
+
+.row--won .row__meta span:first-child {
+  color: var(--green);
+}
+.screen--board {
+  align-items: stretch;
+}
+.panel.panel--board {
+  margin: 0 auto;
+  height: calc(100dvh - 32px);
+}
+.board__title {
+  margin: 0;
 }
 
 /* ── 큰 화면: 독을 넓게, 글자 조금 크게 ── */

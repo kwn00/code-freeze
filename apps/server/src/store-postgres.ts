@@ -10,6 +10,7 @@
  * - 기록은 지우지 않는다 (CLAUDE.md). DELETE·TRUNCATE·DROP 을 쓰지 않는다.
  */
 import pg from 'pg';
+import { isBoardTowers } from '@code-freeze/shared';
 import type { LeaderboardStore, RunRecord } from './leaderboard';
 
 const POOL_MAX = 2;
@@ -32,6 +33,8 @@ const CREATE_TABLE = `CREATE TABLE IF NOT EXISTS runs (
     won         boolean NOT NULL,
     ended_at    bigint  NOT NULL
   )`;
+/** 판이 끝날 때 서 있던 타워들 (0.1.1 에 더한 열). 예전 기록은 NULL 로 남는다: 기존 행은 건드리지 않는다 */
+const ADD_TOWERS = `ALTER TABLE runs ADD COLUMN IF NOT EXISTS towers jsonb`;
 const CREATE_INDEX = `CREATE INDEX IF NOT EXISTS runs_top ON runs (season, cleared DESC, lives DESC, kills DESC, ended_at ASC)`;
 
 interface Row {
@@ -44,6 +47,7 @@ interface Row {
   kills: number;
   won: boolean;
   ended_at: string;
+  towers: unknown;
 }
 
 export function createPostgresStore(url: string): LeaderboardStore {
@@ -79,6 +83,7 @@ export function createPostgresStore(url: string): LeaderboardStore {
   function ensureSchema(): Promise<void> {
     schema ??= tx(async (c) => {
       await c.query(CREATE_TABLE);
+      await c.query(ADD_TOWERS);
       await c.query(CREATE_INDEX);
     }).catch((err) => {
       schema = null; // 다음 사용 때 다시
@@ -92,7 +97,7 @@ export function createPostgresStore(url: string): LeaderboardStore {
     async top(season, limit) {
       await ensureSchema();
       const { rows } = await tx((c) =>
-        c.query<Row>(`SELECT id, season, app_version, name, cleared, lives, kills, won, ended_at FROM runs WHERE season = $1 ORDER BY ${ORDER} LIMIT $2`, [season, limit]),
+        c.query<Row>(`SELECT id, season, app_version, name, cleared, lives, kills, won, ended_at, towers FROM runs WHERE season = $1 ORDER BY ${ORDER} LIMIT $2`, [season, limit]),
       );
       return rows.map(
         (r): RunRecord => ({
@@ -105,6 +110,8 @@ export function createPostgresStore(url: string): LeaderboardStore {
           kills: r.kills,
           won: r.won,
           endedAt: Number(r.ended_at),
+          // 저장된 값도 모양을 확인하고 쓴다 (틀리면 타워 없이)
+          ...(isBoardTowers(r.towers) ? { towers: r.towers } : {}),
         }),
       );
     },
@@ -112,9 +119,9 @@ export function createPostgresStore(url: string): LeaderboardStore {
       await ensureSchema();
       await tx((c) =>
         c.query(
-          `INSERT INTO runs (id, season, app_version, name, cleared, lives, kills, won, ended_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT (id) DO NOTHING`,
-          [r.id, r.season, r.version, r.name, r.cleared, r.lives, r.kills, r.won, r.endedAt],
+          `INSERT INTO runs (id, season, app_version, name, cleared, lives, kills, won, ended_at, towers)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ON CONFLICT (id) DO NOTHING`,
+          [r.id, r.season, r.version, r.name, r.cleared, r.lives, r.kills, r.won, r.endedAt, r.towers ? JSON.stringify(r.towers) : null],
         ),
       );
     },
