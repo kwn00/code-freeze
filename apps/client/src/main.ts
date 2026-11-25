@@ -143,16 +143,15 @@ function refreshUi(): void {
   }
   $('btn-speed').textContent = `×${s?.speed ?? 1}`;
   const hint = $('build-hint');
-  hint.classList.toggle('hidden', !buildKind);
-  if (buildKind) {
-    const d = TOWERS[buildKind];
-    hint.textContent = `${d.icon} ${d.name} · ${d.desc} · 길 옆 빈칸을 누르세요`;
-  }
+  // 자리는 늘 차지한다 (보였다 사라질 때 독의 높이가 바뀌면 맵이 다시 커지고 작아져, 바로 누른 칸이 어긋난다)
+  hint.classList.toggle('is-off', !buildKind);
+  hint.textContent = buildKind ? `${TOWERS[buildKind].icon} ${TOWERS[buildKind].name} · ${TOWERS[buildKind].desc}` : '타워를 고르고 길 옆 빈칸을 누르세요';
 
   const t = s && selected !== null ? s.towers.find((x) => x.id === selected) : undefined;
   if (selected !== null && !t && s) selected = null; // 팔렸거나 새 판
-  $('tower-panel').classList.toggle('hidden', !t);
-  $('build-bar').classList.toggle('hidden', !!t);
+  // 둘은 같은 칸에 겹쳐 있다: 보이지만 않게 해서 독의 높이가 바뀌지 않게 한다 (맵 크기가 흔들리지 않게)
+  $('tower-panel').classList.toggle('is-away', !t);
+  $('build-bar').classList.toggle('is-away', !!t);
   if (t) {
     const def = TOWERS[t.kind];
     const lv = def.levels[t.level]!;
@@ -446,7 +445,7 @@ net.onMessage = (m: ServerMsg) => {
         playing = true;
         $('screen-title').classList.add('hidden');
         $('status-text').textContent = '';
-        showBanner('🛠️ 길 옆에 타워를 깔고 git push 로 웨이브를 시작하세요', '', 3200);
+        showBanner(m.resumed ? '↩️ 하던 판을 이어 가요' : '🛠️ 길 옆에 타워를 깔고 git push 로 웨이브를 시작하세요', m.resumed ? 'good' : '', m.resumed ? 1600 : 3200);
       }
       break;
     case 'state': {

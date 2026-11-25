@@ -23,18 +23,20 @@
       </main>
 
       <footer class="dock">
-        <p id="build-hint" class="dock__hint hidden"></p>
+        <p id="build-hint" class="dock__hint is-off"></p>
+        <div class="dock__slot">
         <div id="build-bar" class="dock__towers"></div>
-        <div id="tower-panel" class="panel-tower hidden">
+        <div id="tower-panel" class="panel-tower is-away">
           <div class="panel-tower__info">
-            <b id="tp-name"></b>
-            <span id="tp-stats" class="muted"></span>
+            <b id="tp-name">·</b>
+            <span id="tp-stats" class="muted">·</span>
           </div>
           <div class="panel-tower__btns">
-            <button id="tp-upgrade" class="btn btn--primary" type="button"></button>
-            <button id="tp-sell" class="btn" type="button"></button>
+            <button id="tp-upgrade" class="btn btn--primary" type="button">⬆</button>
+            <button id="tp-sell" class="btn" type="button">💸</button>
             <button id="tp-close" class="btn btn--icon" type="button" aria-label="닫기">✕</button>
           </div>
+        </div>
         </div>
         <div class="dock__actions">
           <button id="btn-wave" class="btn btn--primary btn--wide" type="button">▶ git push --wave</button>

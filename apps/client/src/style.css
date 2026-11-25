@@ -229,12 +229,23 @@ body {
   flex-direction: column;
   font-size: 12px;
 }
+.panel-tower__info > * {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .panel-tower__info b {
   color: var(--yellow);
 }
 .panel-tower__btns {
   display: flex;
   gap: 6px;
+}
+.panel-tower__btns .btn {
+  white-space: nowrap;
+  padding-left: 6px;
+  padding-right: 6px;
+  font-size: 12px;
 }
 .panel-tower__btns .btn:not(.btn--icon) {
   flex: 1;
@@ -392,8 +403,26 @@ body {
 .dock__hint {
   margin: 0;
   font-size: 11px;
+  line-height: 16px;
+  height: 16px;
   color: var(--cyan);
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dock__hint.is-off {
+  color: var(--muted);
+}
+/* 타워 고르기 줄과 타워 패널은 한 칸에 겹친다: 높이는 둘 중 큰 쪽으로 늘 같다 (바뀌면 맵 크기가 흔들린다) */
+.dock__slot {
+  display: grid;
+}
+.dock__slot > * {
+  grid-area: 1 / 1;
+}
+.is-away {
+  visibility: hidden;
 }
 
 /* ── 이름, 순위표, 새 소식, 연결 ── */
@@ -513,8 +542,7 @@ body {
     align-items: stretch;
     justify-content: center;
   }
-  .dock__towers,
-  .panel-tower {
+  .dock__slot {
     width: min(560px, 70%);
   }
   .tower-btn {
@@ -547,8 +575,7 @@ body {
     border-top: 0;
     border-left: var(--px) solid var(--line);
   }
-  .dock__towers,
-  .panel-tower,
+  .dock__slot,
   .dock__actions {
     width: auto;
   }

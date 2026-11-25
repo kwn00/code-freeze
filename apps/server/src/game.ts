@@ -227,6 +227,7 @@ export class GameManager {
         // 한 판의 오류가 다른 판(프로세스)을 멈추지 않게
         console.error('[error] game tick', err instanceof Error ? err.message : err);
         this.remove(g);
+        this.onExpire(g, 'idle'); // 소켓을 닫고 지켜 둔 자리도 비운다
         continue;
       }
       const why = g.expired(now);

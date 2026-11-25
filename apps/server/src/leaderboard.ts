@@ -127,10 +127,13 @@ export class Leaderboard {
     return rank >= 0 && rank < BOARD_SIZE ? rank + 1 : null;
   }
 
-  private flushing = false;
-  async flush(): Promise<void> {
-    if (this.flushing) return;
-    this.flushing = true;
+  private running: Promise<void> | null = null;
+  /** 저장 중이면 그 저장이 끝나기를 기다린다 (같은 저장을 두 번 돌리지 않는다) */
+  flush(): Promise<void> {
+    this.running ??= this.doFlush().finally(() => (this.running = null));
+    return this.running;
+  }
+  private async doFlush(): Promise<void> {
     try {
       while (this.pending.length) {
         await this.store.save(this.pending[0]!);
@@ -145,15 +148,15 @@ export class Leaderboard {
         }, RETRY_MS);
         this.retry.unref();
       }
-    } finally {
-      this.flushing = false;
     }
   }
 
   /** 종료할 때: 남은 기록을 마저 쓰고 저장소를 닫는다 */
   async close(): Promise<void> {
     if (this.retry) clearTimeout(this.retry);
-    await this.flush();
+    // 돌고 있는 저장을 기다린 뒤, 남은 것을 몇 번 더 시도한다 (index.ts 가 전체 시간에 상한을 둔다)
+    for (let i = 0; i < 3 && (this.running || this.pending.length); i++) await this.flush();
+    if (this.retry) clearTimeout(this.retry);
     await this.store.close();
   }
 }

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { IDLE_LIMIT_MS, RESUME_WINDOW_MS, START_MONEY, TOWERS, type ServerMsg, type Snapshot } from '@code-freeze/shared';
-import { Game, type RunReport } from './game';
+import { Game, GameManager, type RunReport } from './game';
 import { Leaderboard, MemoryStore } from './leaderboard';
 
 function setup(record: (r: RunReport) => Promise<number | null> = async () => null) {
@@ -78,9 +78,9 @@ test('판이 끝나면 결과를 한 번만 남기고 보낸다', async () => {
   g.handle({ t: 'wave' });
   for (let i = 0; i < 30 * 600 && g.state.status !== 'build'; i++) g.tick(i * 33);
   // 타워가 없어서 새어 나가지만 첫 웨이브만으로는 지지 않는다 → 계속
-  while (g.state.status === 'build') {
+  while ((g.state.status as string) === 'build') {
     g.handle({ t: 'wave' });
-    for (let i = 0; i < 30 * 600 && g.state.status === 'wave'; i++) g.tick(1e6);
+    for (let i = 0; i < 30 * 600 && (g.state.status as string) === 'wave'; i++) g.tick(1e6);
   }
   assert.equal(g.state.status, 'lost');
   for (let i = 0; i < 5; i++) g.tick(1e6);
@@ -103,4 +103,41 @@ test('리더보드: 서버가 만든 기록만, 순위대로, 스프린트 0 은
   assert.equal(lb.record({ ...base, cleared: 3, won: true }), null);
   assert.equal(lb.record({ ...base, cleared: 3, name: '<b>' }), null);
   assert.deepEqual(lb.top().map((e) => e.name), ['b', 'c', 'a']);
+});
+
+test('리더보드: 종료할 때 돌고 있던 저장을 기다리고 남은 기록까지 쓴 뒤 저장소를 닫는다', async () => {
+  const saved: string[] = [];
+  let closed = false;
+  const store = {
+    persistent: true,
+    top: async () => [],
+    save: async (r: { name: string }) => {
+      await new Promise((res) => setTimeout(res, 30));
+      if (closed) throw new Error('closed');
+      saved.push(r.name);
+    },
+    close: async () => {
+      closed = true;
+    },
+  };
+  const lb = new Leaderboard(store as never, 0);
+  const base = { won: false, lives: 5, kills: 10, simSeconds: 100, wallSeconds: 100, cleared: 2 };
+  for (const name of ['a', 'b', 'c']) lb.record({ ...base, name });
+  await lb.close();
+  assert.deepEqual(saved, ['a', 'b', 'c']);
+  assert.equal(closed, true);
+});
+
+test('판 하나의 오류는 그 판만 닫고 소켓 정리 콜백을 부른다', () => {
+  const expired: string[] = [];
+  const m = new GameManager((_g, why) => expired.push(why));
+  const g = new Game('x', () => {}, async () => null, 0);
+  g.tick = () => {
+    throw new Error('boom');
+  };
+  m.add(g);
+  m.tickAll(0);
+  m.stop();
+  assert.equal(m.count, 0);
+  assert.deepEqual(expired, ['idle']);
 });
