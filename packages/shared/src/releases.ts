@@ -21,6 +21,15 @@ export interface ReleaseNote {
 /** 최신 버전이 맨 위 */
 export const RELEASES: readonly ReleaseNote[] = [
   {
+    version: '1.0.1',
+    date: '2026-11-25',
+    title: '버튼이 깜빡이지 않아요',
+    items: [
+      '빠르기 버튼을 누르면 값이 한 번에 바뀌어요 (예전 값으로 돌아갔다 오지 않아요).',
+      '일시정지 메뉴가 떴다 사라졌다 다시 뜨지 않아요.',
+    ],
+  },
+  {
     version: '1.0.0',
     date: '2026-11-25',
     title: '시즌 1: 30 스프린트와 야근',
