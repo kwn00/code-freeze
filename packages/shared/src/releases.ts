@@ -21,6 +21,17 @@ export interface ReleaseNote {
 /** 최신 버전이 맨 위 */
 export const RELEASES: readonly ReleaseNote[] = [
   {
+    version: '1.1.0',
+    date: '2026-11-25',
+    title: '더 어려워졌어요',
+    items: [
+      '스프린트마다 꾸준히 어려워져요. 막이 바뀌어도 쉬워지지 않아요.',
+      '전체적으로 버그가 더 단단해졌어요. 30 스프린트는 여전히 깰 수 있어요.',
+      'console.log() 4단계가 조금 약해졌어요. 여러 타워를 섞어 써 보세요.',
+      '빠르기 버튼과 일시정지 메뉴가 깜빡이지 않아요.',
+    ],
+  },
+  {
     version: '1.0.0',
     date: '2026-11-25',
     title: '시즌 1: 30 스프린트와 야근',

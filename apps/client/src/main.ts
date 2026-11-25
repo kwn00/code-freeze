@@ -34,6 +34,7 @@ import {
 import { Audio } from './audio';
 import { Leaderboard } from './leaderboard';
 import { Net } from './net';
+import { Pending } from './pending';
 import { Renderer, type Preview } from './render';
 import { makeSprites } from './sprites';
 import { View, checkSnapshot, type ViewState } from './view';
@@ -66,6 +67,9 @@ let bannerTimer = 0;
 let muted = store('cf-muted') === '1';
 audio.setMuted(muted);
 
+/** 누르고 서버의 확인을 기다리는 값 (빠르기, 멈춤) */
+const wantSpeed = new Pending<1 | 2 | 3>();
+const wantPaused = new Pending<boolean>();
 /** 연결 전에 그리는 빈 맵 */
 const EMPTY = newGame();
 const send = (m: ClientMsg): void => net.send(m);
@@ -142,14 +146,18 @@ function refreshUi(): void {
   }
   const waveBtn = $<HTMLButtonElement>('btn-wave');
   if (s?.status === 'build') {
-    waveBtn.disabled = s.paused;
+    waveBtn.disabled = wantPaused.shown(s.paused, performance.now());
     waveBtn.textContent = `▶ git push · ${s.wave + 1}`;
     waveBtn.title = waveAt(s.wave + 1).name;
   } else {
     waveBtn.disabled = true;
     waveBtn.textContent = s?.status === 'wave' ? `⏳ ${waveAt(s.wave).name}` : '—';
   }
-  $('btn-speed').textContent = `×${s?.speed ?? 1}`;
+  const now = performance.now();
+  // 누른 것은 서버가 확인할 때까지 그대로 보여 준다 (늦게 도착한 옛 상태로 깜빡이지 않게. pending.ts)
+  const speed = wantSpeed.shown(((s?.speed ?? 1) as 1 | 2 | 3), now);
+  const paused = s ? wantPaused.shown(s.paused, now) : false;
+  $('btn-speed').textContent = `×${speed}`;
   const hint = $('build-hint');
   // 자리는 늘 차지한다 (보였다 사라질 때 독의 높이가 바뀌면 맵이 다시 커지고 작아져, 바로 누른 칸이 어긋난다)
   hint.classList.toggle('is-off', !buildKind);
@@ -177,7 +185,7 @@ function refreshUi(): void {
     $('tp-sell').textContent = t.fresh >= t.spent ? `↩️ 되돌리기 +${sellValue(t)}` : `💸 팔기 +${sellValue(t)}`;
   }
   // 서버가 멈춤 상태면 멈춤 화면을 띄운다 (끊겼다 다시 붙었을 때 포함)
-  if (playing && s) $('screen-pause').classList.toggle('hidden', !(s.paused && s.status !== 'won' && s.status !== 'lost'));
+  if (playing && s) $('screen-pause').classList.toggle('hidden', !(paused && s.status !== 'won' && s.status !== 'lost' && s.status !== 'retired'));
 }
 
 // ── 맵 누르기 ──
@@ -296,24 +304,31 @@ function tryStartWave(): void {
     refreshUi();
   }
 }
-/** 서버 답을 기다리지 않고 연달아 눌러도 1 → 2 → 3 으로 넘어가게, 마지막으로 부탁한 값을 기억한다 */
-let wantSpeed: { s: 1 | 2 | 3; at: number } | null = null;
+/** 지금 화면에 보이는 멈춤 상태 (기다리는 값 포함) */
+function pausedShown(): boolean {
+  const s = current();
+  return s ? wantPaused.shown(s.paused, performance.now()) : false;
+}
 function toggleSpeed(): void {
   const now = performance.now();
-  const base = wantSpeed && now - wantSpeed.at < 1000 ? wantSpeed.s : (current()?.speed ?? 1);
+  // 서버 답을 기다리지 않고 연달아 눌러도 1 → 2 → 3 으로 넘어가게, 기다리는 값부터 센다
+  const base = wantSpeed.peek(now) ?? current()?.speed ?? 1;
   const s = base === 1 ? 2 : base === 2 ? 3 : 1;
-  wantSpeed = { s, at: now };
+  wantSpeed.set(s, now);
   send({ t: 'speed', s });
-  $('btn-speed').textContent = `×${s}`;
+  refreshUi();
 }
 function setPaused(p: boolean): void {
   const s = current();
-  if (!playing || !s || s.status === 'won' || s.status === 'lost') return;
+  if (!playing || !s || s.status === 'won' || s.status === 'lost' || s.status === 'retired') return;
+  wantPaused.set(p, performance.now());
   send({ t: 'pause', on: p });
-  $('screen-pause').classList.toggle('hidden', !p);
+  refreshUi();
 }
 function restart(): void {
   send({ t: 'restart' });
+  wantSpeed.clear();
+  wantPaused.clear();
   $('screen-freeze').classList.add('hidden');
   buildKind = null;
   selected = null;
@@ -338,9 +353,9 @@ window.addEventListener('keydown', (ev) => {
       buildKind = null;
       selected = null;
       refreshUi();
-    } else setPaused(!(current()?.paused ?? false));
+    } else setPaused(!pausedShown());
   } else if (ev.key === 'f' || ev.key === 'F') toggleSpeed();
-  else if (ev.key === 'p' || ev.key === 'P') setPaused(!(current()?.paused ?? false));
+  else if (ev.key === 'p' || ev.key === 'P') setPaused(!pausedShown());
 });
 
 document.addEventListener('visibilitychange', () => {

@@ -15,6 +15,7 @@ import {
   WIN_WAVE,
   bountyScaleAt,
   hpScaleAt,
+  normalHpScaleAt,
   waveAt,
   type EnemyId,
   type TowerId,
@@ -131,6 +132,8 @@ export interface State {
   kills: number;
   /** 지금 웨이브가 시작될 때의 kills. 웨이브 중에 끝나면(퇴근·장애·닫힘) 막지 못한 웨이브에서 잡은 것은 기록에 넣지 않는다 */
   killsAtWaveStart: number;
+  /** 이번 웨이브의 보스가 아닌 버그 체력 배수 (content.ts normalHpScaleAt) */
+  waveHpScale: number;
   nextId: number;
 }
 
@@ -193,6 +196,7 @@ export function newGame(): State {
     events: [],
     kills: 0,
     killsAtWaveStart: 0,
+    waveHpScale: 1,
     nextId: 1,
   };
 }
@@ -294,6 +298,7 @@ export function startWave(s: State): boolean {
   // 웨이브가 시작되면 원가로 되돌리기는 끝난다
   for (const t of s.towers) t.fresh = 0;
   s.waveTime = 0;
+  s.waveHpScale = normalHpScaleAt(s.wave);
   const def = waveAt(s.wave);
   for (const g of def.groups) {
     for (let i = 0; i < g.count; i++) s.queue.push({ at: (g.delay ?? 0) + i * g.gap, kind: g.kind });
@@ -310,8 +315,9 @@ export function hpScale(wave: number): number {
 function spawn(s: State, kind: EnemyId, dist = 0): Enemy | null {
   if (s.enemies.length >= MAX_ENEMIES) return null;
   // 보스는 체력이 절반 속도로 늘어난다 (늦은 막의 보스도 4단계를 다 올리지 않고 잡을 수 있게)
+  // 보스가 아닌 버그: 이 웨이브의 체력 예산에 맞춘 배수 (startWave). 보스: 난이도 곡선의 절반 속도
   const scale = hpScale(s.wave);
-  const hp = Math.round(ENEMIES[kind].hp * (ENEMIES[kind].boss ? 1 + (scale - 1) * BOSS_HP_SHARE : scale));
+  const hp = Math.max(1, Math.round(ENEMIES[kind].hp * (ENEMIES[kind].boss ? 1 + (scale - 1) * BOSS_HP_SHARE : s.waveHpScale || scale)));
   const e: Enemy = { id: s.nextId++, kind, hp, maxHp: hp, dist, slow: 1, burnDps: 0, burnLeft: 0, flash: 0, stunLeft: 0, age: 0 };
   s.enemies.push(e);
   if (ENEMIES[kind].boss) s.events.push({ t: 'boss', kind });
@@ -497,7 +503,7 @@ export function step(s: State): void {
       e.burnLeft -= dt;
       if (e.burnLeft <= 0) e.burnDps = 0;
     }
-    if (e.hp > 0 && def.regen) e.hp = Math.min(e.maxHp, e.hp + def.regen * hpScale(s.wave) * dt);
+    if (e.hp > 0 && def.regen) e.hp = Math.min(e.maxHp, e.hp + def.regen * (e.maxHp / def.hp) * dt);
     e.flash = Math.max(0, e.flash - dt);
     if (e.hp <= 0) {
       const [x, y] = enemyPos(e);
