@@ -1,7 +1,7 @@
 /** 0.2.0 의 규칙: 해금, 야근, 얼림, 줄 뚫기, 튕기기, 사라지기, 낳기, 빨라지기, 버그 수 상한, 퇴근 */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ENEMIES, TOWERS, WAVES, WIN_WAVE, hpScaleAt, waveAt } from './content';
+import { ENEMIES, TOWERS, WAVES, WIN_WAVE, baseHpWithSplits, hpBudgetAt, hpScaleAt, normalHpScaleAt, waveAt } from './content';
 import { MAX_ENEMIES, build, clearedOf, isPhased, isUnlocked, newGame, retire, startWave, step, type Enemy, type State } from './sim';
 import { parseClientMsg } from './protocol';
 
@@ -150,4 +150,30 @@ test('웨이브 중에 끝나면 그 웨이브에서 잡은 버그는 기록에 
   retire(s);
   assert.equal(s.kills, 10);
   assert.equal(clearedOf(s), 0);
+});
+
+test('난도 곡선: 보스가 아닌 버그의 체력 합계는 스프린트마다 늘어난다 (막이 바뀌어도, 야근에서도 쉬워지지 않는다)', () => {
+  let prev = 0;
+  for (let w = 1; w <= 80; w++) {
+    const b = hpBudgetAt(w);
+    assert.ok(b > prev, `${w} 스프린트 ${Math.round(b)} <= ${Math.round(prev)}`);
+    prev = b;
+    // 실제로 나오는 버그의 체력 합계가 예산과 같다 (마릿수·종류와 상관없이)
+    let raw = 0;
+    for (const g of waveAt(w).groups) if (!ENEMIES[g.kind].boss) raw += g.count * baseHpWithSplits(g.kind);
+    assert.ok(Math.abs(raw * normalHpScaleAt(w) - b) < 1e-6 * b);
+  }
+  // 1막 보스 다음(11)과 2막 보스 다음(21)이 앞 스프린트보다 쉽지 않다
+  assert.ok(hpBudgetAt(11) > hpBudgetAt(10) && hpBudgetAt(21) > hpBudgetAt(20));
+});
+
+test('웨이브가 시작되면 그 웨이브의 체력 배수로 버그가 나온다 (보스는 따로)', () => {
+  const s = newGame();
+  s.wave = 10;
+  startWave(s); // 11
+  assert.ok(Math.abs(s.waveHpScale - normalHpScaleAt(11)) < 1e-9);
+  s.waveTime = 1e6;
+  step(s);
+  const typo = s.enemies.find((e) => e.kind === 'typo')!;
+  assert.equal(typo.maxHp, Math.round(ENEMIES.typo.hp * s.waveHpScale));
 });

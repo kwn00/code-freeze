@@ -86,7 +86,7 @@ export const TOWERS: Record<TowerId, TowerDef> = {
       { cost: 50, damage: 6, range: 2.4, cooldown: 0.5 },
       { cost: 45, damage: 10, range: 2.6, cooldown: 0.42 },
       { cost: 80, damage: 16, range: 2.9, cooldown: 0.34 },
-      { cost: 260, damage: 24, range: 3.0, cooldown: 0.28 },
+      { cost: 260, damage: 20, range: 3.0, cooldown: 0.3 },
     ],
   },
   duck: {
@@ -382,6 +382,40 @@ export function hpScaleAt(wave: number): number {
   const over = Math.max(0, w - WAVES.length);
   return base * (1 + d.over1 * over + d.over2 * over * over);
 }
+/**
+ * 스프린트마다 보스가 아닌 버그들의 체력 합계 (예산). 한 곡선으로 매끄럽게 오른다: 막이 바뀌어도 쉬워지지 않는다.
+ * 웨이브가 시작될 때 그 웨이브의 마릿수·종류로 나눠 한 마리의 체력 배수를 정한다 (sim.ts startWave).
+ * 그래서 오타 떼 웨이브든 기술 부채 웨이브든 같은 스프린트면 버텨야 하는 양이 같다. 보스는 따로 hpScaleAt 을 따른다.
+ */
+export const BUDGET = {
+  /** 크기: 1 스프린트의 합계가 대략 이것 × growth */
+  base: 155,
+  /** 스프린트 번호의 몇 제곱 (처음에 빠르게) */
+  power: 1.02,
+  /** 스프린트마다 곱해지는 배수 (꾸준히) */
+  growth: 1.078,
+  /** 야근 n 일차: × (1 + over·n)² */
+  over: 0.1,
+};
+export function hpBudgetAt(wave: number): number {
+  const w = Math.max(1, wave);
+  const over = Math.max(0, w - WAVES.length);
+  return BUDGET.base * w ** BUDGET.power * BUDGET.growth ** w * (1 + BUDGET.over * over) ** 2;
+}
+
+/** 버그 한 마리가 쓰러질 때까지의 체력 (갈라져 나오는 것까지 합쳐서, 배수 1 기준) */
+export function baseHpWithSplits(kind: EnemyId): number {
+  const d = ENEMIES[kind];
+  return d.hp + (d.splits && !d.boss ? d.splits.count * baseHpWithSplits(d.splits.kind) : 0);
+}
+
+/** n 스프린트에서 보스가 아닌 버그의 체력 배수: 예산 ÷ (마릿수 × 기본 체력) */
+export function normalHpScaleAt(wave: number): number {
+  let raw = 0;
+  for (const g of waveAt(wave).groups) if (!ENEMIES[g.kind].boss) raw += g.count * baseHpWithSplits(g.kind);
+  return raw > 0 ? hpBudgetAt(wave) / raw : hpScaleAt(wave);
+}
+
 /** 스프린트가 오를수록 잡을 때 받는 SP 도 조금 늘어난다 (4단계를 올릴 수 있게) */
 export function bountyScaleAt(wave: number): number {
   return 1 + 0.025 * Math.max(0, wave - 1);
