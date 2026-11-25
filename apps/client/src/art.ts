@@ -3,7 +3,7 @@
  * Friday Deploy 와 같은 방식, 같은 팔레트(Catppuccin Mocha + 외곽선 #11111b)를 쓴다.
  * 화면(DOM)을 쓰지 않아서 단위 테스트에서 모양을 검사할 수 있다. 캔버스로 굽는 것은 sprites.ts 가 한다.
  */
-import type { EnemyId, TowerId } from './content';
+import type { EnemyId, TowerId } from '@code-freeze/shared';
 
 export const PAL: Record<string, string> = {
   k: '#11111b', // 외곽선

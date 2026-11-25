@@ -8,7 +8,8 @@
 - **장르**: 타워디펜스 (정해진 길 + 빈칸에 타워 짓기 · 올리기 · 팔기, 10 웨이브)
 - **플랫폼**: 웹 (모바일 퍼스트 세로 화면, 데스크톱 · 가로 화면도 지원)
 - **아트 · 소리**: 외부 이미지 · 소리 파일 없이 코드로 만든 픽셀 스프라이트와 칩튠 (Friday Deploy 와 같은 방식, 같은 팔레트)
-- **지금 상태**: 데모 (v0.1.0). 서버 · DB 없이 브라우저만으로 돈다
+- **구조**: 서버 권위 (Friday Deploy 와 같다). 판정은 모두 서버가 하고 화면은 입력만 보낸다
+- **배포**: Render 웹 서비스 하나 + Neon PostgreSQL (리더보드)
 
 ## 컨셉
 
@@ -22,6 +23,7 @@
 | 버그 (6 + 보스 2) | 버그 · Off-by-one (빠름) · NullPointerException (단단함) · Merge Conflict (쓰러지면 버그 둘로) · Memory Leak (회복) · 기술 부채 (느리고 갑옷 두꺼움) / 👑 왕버그 · God Class |
 | 승리 | `git tag freeze-YYYY` · ✔ All checks passed |
 | 팔기 | 쓴 값의 70% 를 돌려받는다 |
+| 순위표 | 🏆 `git log --top`: 막은 스프린트 → 남은 가용성 → 잡은 버그 순. 서버가 판이 끝날 때 직접 남긴다 |
 
 Friday Deploy 와 같은 세계: 같은 주인공(후드티 + 헤드폰 개발자), 같은 버그 그림, 같은 팔레트(Catppuccin Mocha + 외곽선 `#11111b`), 같은 픽셀 폰트(Galmuri11), 터미널 명령어 말투.
 
@@ -40,21 +42,38 @@ Friday Deploy 와 같은 세계: 같은 주인공(후드티 + 헤드폰 개발�
 
 ```bash
 npm install
-npm run dev        # 개발 서버
-npm test           # 규칙 · 밸런스 · 그림 테스트
-npm run build      # dist/ 에 정적 파일
+npm run dev        # 서버(:8787) + 화면(Vite, /api · /ws 를 서버로 넘긴다)
+npm test           # 규칙 · 밸런스 · 통신 규격 · 서버 · 리더보드 · 보안 · 릴리즈 규칙
+npm run build      # apps/client/dist
+npm start          # 빌드한 화면까지 서버 하나로 (NODE_ENV=production 이면 SESSION_SECRET 필요)
 ```
+
+환경 변수는 `.env.example` 참고. `DATABASE_URL` 이 없으면 순위표는 서버 메모리에만 있다.
+
+## 배포 (Render + Neon)
+
+1. [Neon](https://neon.tech) 에서 프로젝트를 만들고 연결 주소(`...?sslmode=require`, 풀링 주소도 된다)를 복사한다. 테이블은 서버가 처음 쓸 때 만든다.
+2. Render 대시보드 → New → Blueprint → 이 저장소 → Apply (`render.yaml`). `SESSION_SECRET` 은 Render 가 만든다.
+3. 서비스의 Environment 에 `DATABASE_URL` 을 넣는다.
+4. 이후 `main` 에 머지할 때마다 자동으로 배포되고, `.github/workflows/release.yml` 이 태그와 GitHub 릴리즈를 만든다.
+
+## 릴리즈
+
+- 작업은 `release/x.y.z` 브랜치에서 하고 PR 로 `main` 에 올린다 (`main` 에 직접 푸시하지 않는다).
+- 릴리즈노트는 두 벌: GitHub 릴리즈(`docs/releases/x.y.z.md`, 모든 변경)와 게임 안 새 소식(`packages/shared/src/releases.ts`, 플레이어가 체감하는 것만 짧게). 절차는 `.claude/skills/release/SKILL.md`.
 
 ## 구조
 
 ```
-src/content.ts   맵 · 타워 · 버그 · 웨이브 데이터 (콘텐츠는 여기에만)
-src/sim.ts       규칙 전부. 고정 틱(30Hz), 결정론적, DOM 없음 → 단위 테스트
-src/art.ts       글자 격자 픽셀아트 + 팔레트
-src/sprites.ts   격자 → 오프스크린 캔버스
-src/render.ts    캔버스 그리기 (맵 정수 배율, 효과)
-src/audio.ts     Web Audio 효과음 · 배경음악
-src/main.ts      화면 · 입력 · 게임 루프
+packages/shared   콘텐츠 · 결정론적 시뮬레이션 · 통신 규격 · 버전과 새 소식 (서버/화면 공용)
+apps/server       Node + ws. 권위 서버: 판 루프(30Hz), 세션, 레이트리밋, 리더보드(Neon), 화면 파일 서빙
+apps/client       Vite + TypeScript + Canvas 2D. 입력 전송과 그리기만 한다
+docs/SECURITY.md  치트 방지 설계와 위협 모델
 ```
 
-글꼴: [Galmuri11](https://github.com/quiple/galmuri) (SIL OFL 1.1, `public/fonts/`).
+```
+[화면]  의도 (짓기·올리기·팔기·웨이브·빠르기·멈춤)  ──▶  [서버] 검증 → 시뮬레이션 (30Hz)
+[화면]  ◀── 상태 (초당 15번, 웨이브 중)  ─────────────  [서버] 결과 · 순위 기록
+```
+
+글꼴: [Galmuri11](https://github.com/quiple/galmuri) (SIL OFL 1.1, `apps/client/public/fonts/`).

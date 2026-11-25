@@ -396,6 +396,113 @@ body {
   text-align: center;
 }
 
+/* ── 이름, 순위표, 새 소식, 연결 ── */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 12px;
+  text-align: left;
+  font-size: 11px;
+  color: var(--muted);
+}
+.field input {
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg-2);
+  border: 0;
+  box-shadow: 0 0 0 var(--px) var(--line), inset 0 0 0 var(--px) var(--panel);
+  user-select: text;
+  -webkit-user-select: text;
+}
+.field input:focus {
+  outline: none;
+  box-shadow: 0 0 0 var(--px) var(--line), inset 0 0 0 var(--px) var(--green);
+}
+.status {
+  min-height: 1.5em;
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--orange);
+}
+.link {
+  padding: 0;
+  font: inherit;
+  color: var(--blue);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.panel--list {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 32px);
+  text-align: left;
+}
+.panel--list h2 {
+  text-align: center;
+}
+.board,
+.news {
+  flex: 1;
+  min-height: 0;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  overflow-y: auto;
+  background: var(--bg-2);
+  box-shadow: 0 0 0 var(--px) var(--line);
+  font-size: 12px;
+}
+.board {
+  padding-left: 34px;
+}
+.board li {
+  padding: 3px 0;
+  border-bottom: 1px solid var(--panel);
+}
+.board li span {
+  color: var(--muted);
+}
+.board li.is-won b {
+  color: var(--green);
+}
+.board li.is-me {
+  background: #2b3a33;
+}
+.news h3 {
+  margin: 4px 0;
+  font-size: 13px;
+  color: var(--yellow);
+}
+.news h3 small {
+  color: var(--muted);
+  font-weight: normal;
+}
+.news ul {
+  margin: 0 0 10px;
+  padding-left: 18px;
+}
+.rank {
+  margin: 0 0 12px;
+  color: var(--yellow);
+}
+.net {
+  position: fixed;
+  left: 50%;
+  top: calc(var(--safe-t) + 52px);
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--orange);
+  background: rgba(var(--shade-rgb), 0.9);
+  box-shadow: 0 0 0 var(--px) var(--line);
+  z-index: 5;
+}
+
 /* ── 큰 화면: 독을 넓게, 글자 조금 크게 ── */
 @media (min-width: 768px) {
   :root {

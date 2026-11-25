@@ -1,0 +1,40 @@
+# Render Blueprint: 게임 화면 + API + 실시간 서버를 웹 서비스 하나로 배포한다 (Friday Deploy 와 같은 구성).
+# 사용법: Render 대시보드 → New → Blueprint → 이 저장소 선택 → Apply.
+# 이후 main 브랜치에 푸시할 때마다 자동으로 다시 배포된다 (배포 순간 진행 중인 판은 끊긴다).
+# 아래 buildFilter 의 파일만 바뀐 푸시는 다시 배포하지 않는다.
+services:
+  - type: web
+    name: code-freeze
+    runtime: node
+    # 무료: 15분 동안 접속이 없으면 잠들고, 다음 접속 때 깨는 데 약 1분.
+    plan: free
+    # 한국에서 가장 가까운 Render 리전. 서비스를 만든 뒤에는 바꿀 수 없다.
+    region: singapore
+    branch: main
+    # 클라이언트 빌드에 Vite(개발 의존성)가 필요하므로 dev 의존성까지 설치한다.
+    buildCommand: npm ci --include=dev && npm run build
+    # npm 을 거치지 않고 node 를 직접 띄운다: 배포·재시작 때의 SIGTERM 을 node 가 직접 받아 남은 기록을 마저 쓰고 끝낸다.
+    startCommand: cd apps/server && NODE_ENV=production exec node --import tsx src/index.ts
+    healthCheckPath: /healthz
+    autoDeployTrigger: commit
+    buildFilter:
+      ignoredPaths:
+        - "**/*.md"
+        - "docs/**"
+        - "**/*.test.ts"
+        - ".github/**"
+        - ".claude/**"
+        - ".env.example"
+        - ".gitignore"
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # 세션 토큰 서명용 HMAC 시크릿. Render 가 처음 한 번 무작위로 만들고 이후 유지한다.
+      - key: SESSION_SECRET
+        generateValue: true
+      # Render 는 들어온 X-Forwarded-For 뒤에 덧붙이기만 해서 맨 앞 값을 위조할 수 있다.
+      # Render 앞단(Cloudflare)이 덮어쓰는 단일 값 헤더로 클라이언트 IP 를 읽는다.
+      - key: CLIENT_IP_HEADER
+        value: cf-connecting-ip
+      # 리더보드 DB: Render 대시보드의 Environment 에서 DATABASE_URL (Neon PostgreSQL 주소, sslmode=require)을 직접 추가한다.
+      # 비밀번호가 들어 있으므로 이 파일에는 적지 않는다. 없으면 기록은 서버 메모리에만 있다.

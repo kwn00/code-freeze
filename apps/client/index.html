@@ -54,10 +54,18 @@
           <li>그런데 <b>main</b> 브랜치를 따라 버그가 <b>prod</b> 로 몰려온다.</li>
           <li>길 옆에 개발 도구를 깔아 10번의 스프린트를 막아라.</li>
         </ul>
-        <button id="btn-start" class="btn btn--primary btn--wide" type="button">▶ npm run defend</button>
+        <label class="field">
+          <span>git config user.name</span>
+          <input id="name-input" type="text" maxlength="12" autocomplete="nickname" spellcheck="false" placeholder="닉네임" />
+        </label>
+        <div class="buttons">
+          <button id="btn-start" class="btn btn--primary btn--wide" type="button">▶ npm run defend</button>
+          <button id="btn-board" class="btn btn--wide" type="button">🏆 git log --top <small>순위표</small></button>
+        </div>
+        <p id="status-text" class="status" role="status"></p>
         <p class="hint hint--keys">1~5 타워 고르기 · Space 웨이브 시작 · Esc 취소 · F 빠르기</p>
         <p class="hint hint--touch">아래에서 타워를 고르고 길 옆 빈칸을 누르세요</p>
-        <p class="version">v0.1.0 demo · <a href="https://github.com/kwn00/friday-deploy" target="_blank" rel="noopener">Friday Deploy</a> 패밀리</p>
+        <p class="version"><button id="btn-version" class="link" type="button" aria-haspopup="dialog"></button> · <a href="https://github.com/kwn00/friday-deploy" target="_blank" rel="noopener">Friday Deploy</a> 패밀리</p>
       </div>
     </section>
 
@@ -77,9 +85,32 @@
         <pre id="result-code" class="result-code"></pre>
         <h2 id="result-title"></h2>
         <p id="result-text" class="muted"></p>
-        <button id="btn-retry" class="btn btn--primary btn--wide" type="button">↻ 다시 하기</button>
+        <p id="result-rank" class="rank"></p>
+        <div class="buttons">
+          <button id="btn-retry" class="btn btn--primary btn--wide" type="button">↻ 다시 하기</button>
+          <button id="btn-board2" class="btn btn--wide" type="button">🏆 순위표</button>
+        </div>
       </div>
     </section>
+
+    <section id="screen-board" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="board-title">
+      <div class="panel panel--list">
+        <h2 id="board-title">🏆 git log --top</h2>
+        <p id="board-note" class="muted"></p>
+        <ol id="board-list" class="board"></ol>
+        <button id="btn-board-close" class="btn btn--wide" type="button">닫기</button>
+      </div>
+    </section>
+
+    <section id="screen-news" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="news-title">
+      <div class="panel panel--list">
+        <h2 id="news-title">📰 새 소식</h2>
+        <div id="news-list" class="news"></div>
+        <button id="btn-news-close" class="btn btn--primary btn--wide" type="button">확인</button>
+      </div>
+    </section>
+
+    <p id="net-text" class="net hidden" role="status"></p>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

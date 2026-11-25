@@ -1,5 +1,5 @@
 /** 픽셀아트 스프라이트: 외부 이미지 없이 글자 격자(art.ts) → 오프스크린 캔버스로 굽는다 */
-import { ENEMY_IDS, TOWER_IDS, type EnemyId, type TowerId } from './content';
+import { ENEMY_IDS, TOWER_IDS, type EnemyId, type TowerId } from '@code-freeze/shared';
 import { DEV, ENEMY_ART, PAL, PROD_SERVER, SHOT_ART, TOWER_ART } from './art';
 
 export type Sprite = HTMLCanvasElement;

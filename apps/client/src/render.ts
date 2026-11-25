@@ -2,8 +2,8 @@
  * 캔버스 그리기. 맵(9×13 칸)을 정수 배율로 키워서 픽셀이 뭉개지지 않게 한다.
  * 논리 좌표: 칸 하나 = TILE(16) 픽셀. 화면 좌표 = 논리 × scale + 여백.
  */
-import { COLS, ENEMIES, ROWS, TILE, TOWERS, type TowerId } from './content';
-import { PATH_TILES, PROD_TILE, enemyPos, type GameEvent, type State } from './sim';
+import { COLS, ENEMIES, ROWS, TILE, TOWERS, type TowerId } from '@code-freeze/shared';
+import { PATH_TILES, PROD_TILE, enemyPos, type GameEvent, type State } from '@code-freeze/shared';
 import type { Sprites } from './sprites';
 
 const C = {

@@ -3,17 +3,23 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/*.test.ts"
+    "dev": "concurrently -n server,client -c magenta,cyan \"npm run dev -w @code-freeze/server\" \"npm run dev -w @code-freeze/client\"",
+    "build": "npm run build -w @code-freeze/client",
+    "start": "npm run start -w @code-freeze/server",
+    "typecheck": "tsc -p packages/shared && tsc -p apps/server && tsc -p apps/client",
+    "test": "tsx --test packages/shared/src/*.test.ts apps/server/src/*.test.ts apps/client/src/*.test.ts"
   },
   "devDependencies": {
-    "@types/node": "^26.6.7",
-    "tsx": "^4.23.15",
-    "typescript": "^5.9.3",
-    "vite": "^6.4.6"
+    "concurrently": "^9.1.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
   }
 }
