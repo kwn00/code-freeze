@@ -21,7 +21,7 @@ export interface ReleaseNote {
 /** 최신 버전이 맨 위 */
 export const RELEASES: readonly ReleaseNote[] = [
   {
-    version: '1.0.1',
+    version: '1.1.0',
     date: '2026-11-25',
     title: '더 어려워졌어요',
     items: [
