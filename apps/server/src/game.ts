@@ -17,6 +17,7 @@ import {
   boardTowersOf,
   clearedOf,
   recordedKills,
+  recordedTime,
   isOver,
   retire,
   build,
@@ -43,6 +44,8 @@ export interface RunReport {
   lives: number;
   kills: number;
   towers: BoardTower[];
+  /** 클리어 시간 (게임 안 초, 정수) */
+  time: number;
   /** 이 판에서 웨이브가 실제로 돈 서버 시간 (초). 빨리 감기 상한을 넘지 않았는지 보는 근거 */
   simSeconds: number;
   wallSeconds: number;
@@ -179,7 +182,7 @@ export class Game {
     const cleared = clearedOf(s);
     const won = cleared >= WIN_WAVE;
     const kills = recordedKills(s);
-    const report: RunReport = { name: this.name, won, cleared, lives: s.lives, kills, towers: boardTowersOf(s), simSeconds: s.time, wallSeconds: (now - this.startedAt) / 1000 };
+    const report: RunReport = { name: this.name, won, cleared, lives: s.lives, kills, towers: boardTowersOf(s), time: Math.round(recordedTime(s)), simSeconds: s.time, wallSeconds: (now - this.startedAt) / 1000 };
     const reason = s.status === 'lost' ? 'lost' : 'retired';
     const result = (rank: number | null): RunResult => ({ won, reason, cleared, lives: s.lives, kills, rank });
     const state = this.state;

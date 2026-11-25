@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ENEMIES, TOWERS, WAVES, WIN_WAVE, baseHpWithSplits, hpBudgetAt, hpScaleAt, normalHpScaleAt, waveAt } from './content';
-import { MAX_ENEMIES, build, clearedOf, isPhased, isUnlocked, newGame, retire, startWave, step, type Enemy, type State } from './sim';
+import { MAX_ENEMIES, build, clearedOf, isPhased, isUnlocked, newGame, recordedTime, retire, startWave, step, type Enemy, type State } from './sim';
 import { parseClientMsg } from './protocol';
 
 function enemy(s: State, kind: Enemy['kind'], dist: number, hp?: number): Enemy {
@@ -176,4 +176,17 @@ test('웨이브가 시작되면 그 웨이브의 체력 배수로 버그가 나�
   step(s);
   const typo = s.enemies.find((e) => e.kind === 'typo')!;
   assert.equal(typo.maxHp, Math.round(ENEMIES.typo.hp * s.waveHpScale));
+});
+
+test('클리어 시간은 게임 안 시간으로, 웨이브 중에 끝나면 그 웨이브 시작까지', () => {
+  const s = newGame();
+  s.time = 100;
+  startWave(s);
+  s.time = 130;
+  assert.equal(recordedTime(s), 100);
+  retire(s);
+  assert.equal(s.time, 100);
+  const b = newGame();
+  b.time = 250;
+  assert.equal(recordedTime(b), 250, '짓는 중이면 지금까지');
 });

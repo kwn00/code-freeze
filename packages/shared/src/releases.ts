@@ -21,6 +21,16 @@ export interface ReleaseNote {
 /** 최신 버전이 맨 위 */
 export const RELEASES: readonly ReleaseNote[] = [
   {
+    version: '1.2.1',
+    date: '2026-11-25',
+    title: '순위표에 클리어 시간',
+    items: [
+      '순위표에 클리어 시간(⏱)이 나와요. 웨이브가 돈 시간만 세요.',
+      '막은 스프린트와 가용성이 같으면 클리어 시간이 짧은 쪽이 위예요.',
+      '빠르기를 올려도, 쉬었다 해도 클리어 시간은 똑같이 세요.',
+    ],
+  },
+  {
     version: '1.2.0',
     date: '2026-11-25',
     title: 'SP 가 귀해졌어요',

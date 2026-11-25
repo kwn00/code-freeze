@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { IDLE_LIMIT_MS, RESUME_WINDOW_MS, START_MONEY, TOWERS, type ServerMsg, type Snapshot } from '@code-freeze/shared';
 import { Game, GameManager, type RunReport } from './game';
-import { Leaderboard, MemoryStore, isValidEntry } from './leaderboard';
+import { Leaderboard, MemoryStore, compareRuns, isValidEntry } from './leaderboard';
 
 function setup(record: (r: RunReport) => Promise<number | null> = async () => null) {
   const out: ServerMsg[] = [];
@@ -97,7 +97,7 @@ test('판이 끝나면 결과를 한 번만 남기고 보낸다', async () => {
 
 test('리더보드: 서버가 만든 기록만, 순위대로, 스프린트 0 은 제외', () => {
   const lb = new Leaderboard(new MemoryStore(), 0);
-  const base = { name: 'a', won: false, lives: 5, kills: 10, simSeconds: 100, wallSeconds: 100, towers: [[0, 2], [1, 0]] as [number, number][] };
+  const base = { name: 'a', won: false, lives: 5, kills: 10, time: 100, simSeconds: 100, wallSeconds: 100, towers: [[0, 2], [1, 0]] as [number, number][] };
   assert.equal(lb.record({ ...base, cleared: 0 }), null);
   assert.equal(lb.record({ ...base, cleared: 3 }), 1);
   assert.equal(lb.record({ ...base, name: 'b', cleared: 5 }), 1);
@@ -126,7 +126,7 @@ test('리더보드: 종료할 때 돌고 있던 저장을 기다리고 남은 �
     },
   };
   const lb = new Leaderboard(store as never, 0);
-  const base = { won: false, lives: 5, kills: 10, simSeconds: 100, wallSeconds: 100, cleared: 2, towers: [] as [number, number][] };
+  const base = { won: false, lives: 5, kills: 10, time: 100, simSeconds: 100, wallSeconds: 100, cleared: 2, towers: [] as [number, number][] };
   for (const name of ['a', 'b', 'c']) lb.record({ ...base, name });
   await lb.close();
   assert.deepEqual(saved, ['a', 'b', 'c']);
@@ -191,7 +191,7 @@ test('0.2.0: 다시 시작하거나 판이 닫혀도 막은 스프린트는 기�
 
 test('리더보드: 0.1.x 의 프리즈 성공 기록(10 스프린트)은 그대로 읽고, 30 스프린트부터는 반드시 성공', () => {
   const lb = new Leaderboard(new MemoryStore(), 0);
-  const base = { name: 'a', lives: 5, kills: 10, simSeconds: 100, wallSeconds: 100, towers: [] as [number, number][] };
+  const base = { name: 'a', lives: 5, kills: 10, time: 100, simSeconds: 100, wallSeconds: 100, towers: [] as [number, number][] };
   assert.equal(lb.record({ ...base, cleared: 30, won: false }), null, '30 인데 성공이 아니면 버린다');
   assert.equal(lb.record({ ...base, cleared: 31, won: true }), 1);
   assert.ok(lb.record({ ...base, cleared: 10, won: false }));
@@ -231,7 +231,7 @@ test('시즌: 지난 시즌 순위표는 저장소에서 읽고, 시즌 목록�
   const past = await lb.pastTop(0);
   assert.deepEqual(past.map((e) => [e.rank, e.name]), [[1, '옛2'], [2, '옛1']], '모양이 틀린 기록은 빼고 순위대로');
   // 지난 시즌을 읽는 동안 지금 시즌 기록은 섞이지 않는다
-  lb.record({ name: '새', won: false, cleared: 2, lives: 5, kills: 1, simSeconds: 10, wallSeconds: 10, towers: [] });
+  lb.record({ name: '새', won: false, cleared: 2, lives: 5, kills: 1, time: 10, simSeconds: 10, wallSeconds: 10, towers: [] });
   assert.deepEqual(lb.top().map((e) => e.name), ['새']);
   assert.equal((await lb.pastTop(0)).length, 2);
 });
@@ -243,4 +243,29 @@ test('시즌: 저장소가 시즌 목록을 못 읽으면 null (지금 시즌 �
   };
   const lb = new Leaderboard(store, 1);
   assert.equal(await lb.seasons(), null);
+});
+
+test('1.2.1: 같은 점수(스프린트·가용성)면 클리어 시간이 짧은 쪽이 위, 시간이 없는 예전 기록은 그 뒤', () => {
+  const e = (name: string, cleared: number, lives: number, time: number | undefined, kills = 10) => ({ name, cleared, lives, kills, won: false, endedAt: 1, ...(time !== undefined ? { time } : {}) });
+  const rows = [e('느림', 12, 5, 900), e('옛기록', 12, 5, undefined, 999), e('빠름', 12, 5, 600), e('가용성↑', 12, 9, 2000), e('스프린트↑', 13, 1, 5000)].sort(compareRuns);
+  assert.deepEqual(rows.map((r) => r.name), ['스프린트↑', '가용성↑', '빠름', '느림', '옛기록']);
+  assert.equal(isValidEntry(e('a', 3, 1, -1)), false);
+  assert.equal(isValidEntry(e('a', 3, 1, 1.5)), false);
+});
+
+test('1.2.1: 결과에 클리어 시간을 남긴다 (웨이브 중에 끝나면 그 웨이브는 빼고)', async () => {
+  const reports: RunReport[] = [];
+  const { g } = setup(async (r) => {
+    reports.push(r);
+    return null;
+  });
+  g.state.wave = 4;
+  g.state.time = 321.4;
+  g.handle({ t: 'wave' }); // 5 스프린트 시작 (그때 time 321.4)
+  g.state.time = 400;
+  g.handle({ t: 'retire' });
+  g.tick(1e6);
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(reports[0]!.cleared, 4);
+  assert.equal(reports[0]!.time, 321);
 });

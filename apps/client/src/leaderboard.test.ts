@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkEntry, findMine } from './leaderboard';
+import { checkEntry, clock, findMine } from './leaderboard';
 
 const ok = { rank: 1, name: '버그헌터', cleared: 10, lives: 5, kills: 300, won: true, endedAt: 1, towers: [[0, 2]], version: '0.1.1' };
 
@@ -30,4 +30,12 @@ test('내 기록은 순위가 아니라 내용으로 찾는다 (그 사이 밀�
 test('야근 기록(30 스프린트 넘김)도 순위표에 나온다', () => {
   assert.ok(checkEntry({ ...ok, cleared: 47 }));
   assert.equal(checkEntry({ ...ok, cleared: 100000 }), null);
+});
+
+test('클리어 시간 표시와 확인', () => {
+  assert.equal(clock(0), '0:00');
+  assert.equal(clock(605), '10:05');
+  assert.equal(clock(3725), '1:02:05');
+  assert.equal(checkEntry({ ...ok, time: 600 })!.time, 600);
+  assert.equal(checkEntry({ ...ok, time: -5 })!.time, undefined, '이상한 시간은 빼고 쓴다');
 });

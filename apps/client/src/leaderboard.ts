@@ -35,6 +35,14 @@ function node<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text?:
   return n;
 }
 
+/** 클리어 시간: 1시간 넘으면 h:mm:ss, 아니면 m:ss */
+export function clock(sec: number): string {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = String(sec % 60).padStart(2, '0');
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`;
+}
+
 function shortDate(at: number): string {
   const d = new Date(at);
   return Number.isNaN(d.getTime()) ? '' : `${d.getMonth() + 1}/${d.getDate()}`;
@@ -58,6 +66,7 @@ export function checkEntry(e: unknown): LeaderboardEntry | null {
     endedAt: o.endedAt,
     ...(isBoardTowers(o.towers) ? { towers: o.towers } : {}),
     ...(typeof o.version === 'string' && /^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(o.version) ? { version: o.version } : {}),
+    ...(isInt(o.time, 0, 10 * 24 * 3600) ? { time: o.time } : {}),
   };
 }
 
@@ -278,7 +287,7 @@ export class Leaderboard {
       const name = node('span', 'row__names');
       name.append(e.name);
       const meta = node('span', 'row__meta');
-      for (const t of [e.won ? (e.cleared > WIN_WAVE ? `🎉 프리즈 · 야근 ${e.cleared - WIN_WAVE}일` : '🎉 프리즈 성공') : `Sprint ${e.cleared}`, `🖥️ ${e.lives}`, `🐞 ${e.kills}`, shortDate(e.endedAt)]) if (t) meta.append(node('span', '', t));
+      for (const t of [e.won ? (e.cleared > WIN_WAVE ? `🎉 프리즈 · 야근 ${e.cleared - WIN_WAVE}일` : '🎉 프리즈 성공') : `Sprint ${e.cleared}`, `🖥️ ${e.lives}`, `⏱ ${e.time === undefined ? '—' : clock(e.time)}`, `🐞 ${e.kills}`, shortDate(e.endedAt)]) if (t) meta.append(node('span', '', t));
       li.append(rank, name);
       if (e.towers && e.towers.length > 0) {
         hasTowers = true;
@@ -293,7 +302,7 @@ export class Leaderboard {
       list.append(li);
     }
     this.body.replaceChildren(list);
-    const legend = ['막은 스프린트 → 남은 가용성 → 잡은 버그 순이에요', hasTowers ? '아이콘은 끝날 때 서 있던 타워, 숫자는 단계예요' : ''].filter(Boolean);
+    const legend = ['막은 스프린트 → 남은 가용성 → 클리어 시간(⏱, 짧을수록 위) 순이에요', hasTowers ? '아이콘은 끝날 때 서 있던 타워, 숫자는 단계예요' : ''].filter(Boolean);
     this.body.append(node('p', 'board__legend', legend.join(' · ')));
     this.body.scrollTop = 0;
     mineRow?.scrollIntoView({ block: 'nearest' });

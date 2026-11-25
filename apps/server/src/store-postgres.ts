@@ -20,7 +20,8 @@ const STATEMENT_TIMEOUT_MS = 10_000;
 const QUERY_TIMEOUT_MS = 15_000;
 const IDLE_TIMEOUT_MS = 10_000;
 
-const ORDER = 'cleared DESC, lives DESC, kills DESC, ended_at ASC, id COLLATE "C" ASC';
+/** leaderboard.ts 의 compareRuns 와 같은 순서. 클리어 시간이 없는 예전 기록(NULL)은 같은 점수 안에서 뒤로 */
+const ORDER = 'cleared DESC, lives DESC, play_seconds ASC NULLS LAST, kills DESC, ended_at ASC, id COLLATE "C" ASC';
 
 const CREATE_TABLE = `CREATE TABLE IF NOT EXISTS runs (
     id          text    PRIMARY KEY,
@@ -35,6 +36,8 @@ const CREATE_TABLE = `CREATE TABLE IF NOT EXISTS runs (
   )`;
 /** 판이 끝날 때 서 있던 타워들 (0.1.1 에 더한 열). 예전 기록은 NULL 로 남는다: 기존 행은 건드리지 않는다 */
 const ADD_TOWERS = `ALTER TABLE runs ADD COLUMN IF NOT EXISTS towers jsonb`;
+/** 클리어 시간 (1.2.1 에 더한 열, 게임 안 초). 예전 기록은 NULL 로 남는다: 기존 행은 건드리지 않는다 */
+const ADD_TIME = `ALTER TABLE runs ADD COLUMN IF NOT EXISTS play_seconds integer`;
 const CREATE_INDEX = `CREATE INDEX IF NOT EXISTS runs_top ON runs (season, cleared DESC, lives DESC, kills DESC, ended_at ASC)`;
 
 interface Row {
@@ -48,6 +51,7 @@ interface Row {
   won: boolean;
   ended_at: string;
   towers: unknown;
+  play_seconds: number | null;
 }
 
 export function createPostgresStore(url: string): LeaderboardStore {
@@ -84,6 +88,7 @@ export function createPostgresStore(url: string): LeaderboardStore {
     schema ??= tx(async (c) => {
       await c.query(CREATE_TABLE);
       await c.query(ADD_TOWERS);
+      await c.query(ADD_TIME);
       await c.query(CREATE_INDEX);
     }).catch((err) => {
       schema = null; // 다음 사용 때 다시
@@ -97,7 +102,7 @@ export function createPostgresStore(url: string): LeaderboardStore {
     async top(season, limit) {
       await ensureSchema();
       const { rows } = await tx((c) =>
-        c.query<Row>(`SELECT id, season, app_version, name, cleared, lives, kills, won, ended_at, towers FROM runs WHERE season = $1 ORDER BY ${ORDER} LIMIT $2`, [season, limit]),
+        c.query<Row>(`SELECT id, season, app_version, name, cleared, lives, kills, won, ended_at, towers, play_seconds FROM runs WHERE season = $1 ORDER BY ${ORDER} LIMIT $2`, [season, limit]),
       );
       return rows.map(
         (r): RunRecord => ({
@@ -112,6 +117,7 @@ export function createPostgresStore(url: string): LeaderboardStore {
           endedAt: Number(r.ended_at),
           // 저장된 값도 모양을 확인하고 쓴다 (틀리면 타워 없이)
           ...(isBoardTowers(r.towers) ? { towers: r.towers } : {}),
+          ...(r.play_seconds !== null ? { time: r.play_seconds } : {}),
         }),
       );
     },
@@ -119,9 +125,9 @@ export function createPostgresStore(url: string): LeaderboardStore {
       await ensureSchema();
       await tx((c) =>
         c.query(
-          `INSERT INTO runs (id, season, app_version, name, cleared, lives, kills, won, ended_at, towers)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ON CONFLICT (id) DO NOTHING`,
-          [r.id, r.season, r.version, r.name, r.cleared, r.lives, r.kills, r.won, r.endedAt, r.towers ? JSON.stringify(r.towers) : null],
+          `INSERT INTO runs (id, season, app_version, name, cleared, lives, kills, won, ended_at, towers, play_seconds)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (id) DO NOTHING`,
+          [r.id, r.season, r.version, r.name, r.cleared, r.lives, r.kills, r.won, r.endedAt, r.towers ? JSON.stringify(r.towers) : null, r.time ?? null],
         ),
       );
     },

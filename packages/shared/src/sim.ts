@@ -133,6 +133,8 @@ export interface State {
   kills: number;
   /** 지금 웨이브가 시작될 때의 kills. 웨이브 중에 끝나면(퇴근·장애·닫힘) 막지 못한 웨이브에서 잡은 것은 기록에 넣지 않는다 */
   killsAtWaveStart: number;
+  /** 지금 웨이브가 시작될 때의 time (= 막은 스프린트까지 걸린 게임 안 시간) */
+  timeAtWaveStart: number;
   /** 이번 웨이브의 보스가 아닌 버그 체력 배수 (content.ts normalHpScaleAt) */
   waveHpScale: number;
   nextId: number;
@@ -197,6 +199,7 @@ export function newGame(): State {
     events: [],
     kills: 0,
     killsAtWaveStart: 0,
+    timeAtWaveStart: 0,
     waveHpScale: 1,
     nextId: 1,
   };
@@ -273,6 +276,14 @@ export function recordedKills(s: State): number {
   return s.status === 'wave' || s.status === 'lost' ? s.killsAtWaveStart : s.kills;
 }
 
+/**
+ * 기록에 넣을 클리어 시간 (초): 막은 스프린트까지 웨이브가 돈 게임 안 시간의 합.
+ * 빠르기·멈춤·짓는 시간과 상관없다 (게임 안 시간은 웨이브 중에만 흐른다). 웨이브 중에 끝났으면 그 웨이브는 빼고
+ */
+export function recordedTime(s: State): number {
+  return s.status === 'wave' || s.status === 'lost' ? s.timeAtWaveStart : s.time;
+}
+
 /** 막은 스프린트 수 (순위표의 점수) */
 export function clearedOf(s: State): number {
   return s.status === 'wave' || s.status === 'lost' ? s.wave - 1 : s.wave;
@@ -284,6 +295,7 @@ export function retire(s: State): boolean {
   s.queue = [];
   s.shots = [];
   s.kills = recordedKills(s);
+  s.time = recordedTime(s);
   s.wave = clearedOf(s);
   s.status = 'retired';
   s.events.push({ t: 'retired' });
@@ -296,6 +308,7 @@ export function startWave(s: State): boolean {
   s.wave++;
   s.status = 'wave';
   s.killsAtWaveStart = s.kills;
+  s.timeAtWaveStart = s.time;
   // 웨이브가 시작되면 원가로 되돌리기는 끝난다
   for (const t of s.towers) t.fresh = 0;
   s.waveTime = 0;

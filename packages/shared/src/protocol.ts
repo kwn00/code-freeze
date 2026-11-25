@@ -121,6 +121,8 @@ export interface BoardEntry {
   towers?: BoardTower[];
   /** 기록을 세운 게임 버전 (x.y.z) */
   version?: string;
+  /** 클리어 시간: 막은 스프린트까지 걸린 게임 안 시간 (초, 정수). 1.2.1 전의 기록에는 없다 */
+  time?: number;
 }
 
 /** 순위표 한 줄 (응답) */

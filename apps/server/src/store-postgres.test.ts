@@ -90,3 +90,19 @@ test('시즌 목록을 읽는다', opts, async () => {
   assert.deepEqual(await store.seasons(), [0, 1]);
   await store.close();
 });
+
+test('1.2.1: 클리어 시간 열을 더하고(예전 기록은 그대로), 같은 점수면 짧은 시간이 위·시간 없는 기록은 뒤', opts, async () => {
+  const url = await freshSchema();
+  const c = new pg.Client({ connectionString: url });
+  await c.connect();
+  await c.query(`CREATE TABLE runs (id text PRIMARY KEY, season integer NOT NULL, app_version text NOT NULL, name text NOT NULL,
+    cleared integer NOT NULL, lives integer NOT NULL, kills integer NOT NULL, won boolean NOT NULL, ended_at bigint NOT NULL, towers jsonb)`);
+  await c.query(`INSERT INTO runs VALUES ('old', 1, '1.2.0', '옛기록', 12, 5, 999, false, 1, null)`);
+  await c.end();
+  const store = createPostgresStore(url);
+  await store.save(rec({ season: 1, name: '느림', cleared: 12, lives: 5, time: 900 }));
+  await store.save(rec({ season: 1, name: '빠름', cleared: 12, lives: 5, time: 600 }));
+  const rows = await store.top(1, 50);
+  assert.deepEqual(rows.map((r) => [r.name, r.time]), [['빠름', 600], ['느림', 900], ['옛기록', undefined]]);
+  await store.close();
+});
