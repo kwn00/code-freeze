@@ -7,7 +7,7 @@
  * - 기록은 지우지 않는다 (CLAUDE.md). 시즌(LEADERBOARD_SEASON = 메이저 버전)이 바뀌면 기본 순위표에서만 빠진다.
  */
 import { randomUUID } from 'node:crypto';
-import { APP_VERSION, LEADERBOARD_SIZE, MAX_CLEARED, OLD_WIN_WAVE, WIN_WAVE, isBoardTowers, isCleanName, type BoardEntry, type LeaderboardEntry } from '@code-freeze/shared';
+import { APP_VERSION, LEADERBOARD_SIZE, MAX_CLEARED, MAX_SPEED, OLD_WIN_WAVE, WIN_WAVE, isBoardTowers, isCleanName, type BoardEntry, type LeaderboardEntry } from '@code-freeze/shared';
 import type { RunReport } from './game';
 
 export interface RunRecord extends BoardEntry {
@@ -151,12 +151,12 @@ export class Leaderboard {
   }
 
   /**
-   * 판 하나를 남긴다. 스프린트를 하나도 막지 못한 판, 서버 시간으로 말이 안 되는 판(빨리 감기 상한 ×3 을 넘는 판)은 남기지 않는다.
+   * 판 하나를 남긴다. 스프린트를 하나도 막지 못한 판, 서버 시간으로 말이 안 되는 판(빨리 감기 상한 MAX_SPEED 를 넘는 판)은 남기지 않는다.
    * 순위표에 들면 몇 등인지 돌려준다.
    */
   record(r: RunReport, now = Date.now()): number | null {
     if (r.cleared < 1) return null;
-    if (r.simSeconds > r.wallSeconds * 3 + 5) {
+    if (r.simSeconds > r.wallSeconds * MAX_SPEED + 5) {
       console.warn('[leaderboard] 서버 시간보다 빠른 판을 버렸습니다', r.simSeconds, r.wallSeconds);
       return null;
     }

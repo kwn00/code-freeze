@@ -9,6 +9,7 @@ test('올바른 의도만 받는다', () => {
   assert.deepEqual(parseClientMsg(JSON.stringify({ t: 'build', kind: 'log', col: 0, row: 0 })), { t: 'build', kind: 'log', col: 0, row: 0 });
   assert.deepEqual(parseClientMsg('{"t":"wave"}'), { t: 'wave' });
   assert.deepEqual(parseClientMsg('{"t":"speed","s":3}'), { t: 'speed', s: 3 });
+  assert.deepEqual(parseClientMsg('{"t":"speed","s":5}'), { t: 'speed', s: 5 });
   assert.deepEqual(parseClientMsg(JSON.stringify({ t: 'hello', v: 1, token: TOKEN, name: '버그헌터' })), { t: 'hello', v: 1, token: TOKEN, name: '버그헌터' });
 });
 
@@ -26,6 +27,8 @@ test('돈·체력·시간 같은 값을 보내는 통로는 없고, 모양이 �
     '{"t":"build","kind":"log","col":1.5,"row":0}',
     '{"t":"build","kind":"__proto__","col":0,"row":0}',
     '{"t":"speed","s":10}',
+    '{"t":"speed","s":4}',
+    '{"t":"speed","s":6}',
     '{"t":"speed","s":0}',
     '{"t":"pause","on":"yes"}',
     '{"t":"upgrade","id":-1}',

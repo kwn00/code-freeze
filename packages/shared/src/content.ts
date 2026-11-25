@@ -389,13 +389,13 @@ export function hpScaleAt(wave: number): number {
  */
 export const BUDGET = {
   /** 크기: 1 스프린트의 합계가 대략 이것 × growth */
-  base: 155,
+  base: 150,
   /** 스프린트 번호의 몇 제곱 (처음에 빠르게) */
   power: 1.02,
   /** 스프린트마다 곱해지는 배수 (꾸준히) */
-  growth: 1.078,
+  growth: 1.075,
   /** 야근 n 일차: × (1 + over·n)² */
-  over: 0.1,
+  over: 0.03,
 };
 export function hpBudgetAt(wave: number): number {
   const w = Math.max(1, wave);
@@ -416,9 +416,27 @@ export function normalHpScaleAt(wave: number): number {
   return raw > 0 ? hpBudgetAt(wave) / raw : hpScaleAt(wave);
 }
 
-/** 스프린트가 오를수록 잡을 때 받는 SP 도 조금 늘어난다 (4단계를 올릴 수 있게) */
+/**
+ * 돈(SP) 곡선. 잡을 때 받는 SP = 버그의 bounty × kill × (1 + growth·(스프린트-1)), 보스는 × boss.
+ * 웨이브를 막으면 bonusBase + bonusPerWave × 스프린트 (30 까지).
+ * (밸런스 테스트가 이 값으로 보통 실력이 30 스프린트를 깨는지, 30 스프린트까지 다 올리지는 못하는지 확인한다)
+ */
+export const ECONOMY = {
+  kill: 1,
+  /** 1.1.0 까지 0.025 (30 스프린트에 ×1.7). 1.2.0 부터 늘지 않는다 */
+  growth: 0,
+  /** 보스를 잡을 때 받는 SP 배수 (1.1.0 까지 1) */
+  boss: 0.5,
+  /** 1.1.0 까지 20 + 6 × 스프린트 */
+  bonusBase: 15,
+  bonusPerWave: 3,
+};
 export function bountyScaleAt(wave: number): number {
-  return 1 + 0.025 * Math.max(0, wave - 1);
+  return ECONOMY.kill * (1 + ECONOMY.growth * Math.max(0, wave - 1));
 }
-/** 웨이브를 막으면 받는 보너스: 기본 + 웨이브 번호 × 배수 */
+/** 웨이브를 막으면 받는 보너스 */
+export function waveBonusAt(wave: number): number {
+  return Math.round(ECONOMY.bonusBase + ECONOMY.bonusPerWave * Math.min(wave, WIN_WAVE));
+}
+/** @deprecated waveBonusAt 을 쓴다 */
 export const WAVE_BONUS = { base: 20, perWave: 6 };
