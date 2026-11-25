@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#1e1e2e" />
+    <meta name="description" content="코드 프리즈 전날 밤, prod 로 몰려오는 버그를 막는 개발자 픽셀아트 타워디펜스" />
+    <title>CODE FREEZE</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div id="app" class="app">
+      <header class="hud">
+        <div class="hud__stat hud__stat--life" title="prod 가용성"><span>🖥️</span><b id="lives">20</b></div>
+        <div class="hud__stat hud__stat--money" title="스토리 포인트"><span>SP</span><b id="money">0</b></div>
+        <div class="hud__stat hud__stat--wave"><span>Sprint</span><b id="wave">0/10</b></div>
+        <button id="btn-pause" class="hud__btn" type="button" aria-label="일시정지">Ⅱ</button>
+      </header>
+
+      <main class="stage" id="stage">
+        <canvas id="game" aria-label="게임 화면"></canvas>
+        <p id="banner" class="banner hidden" role="status"></p>
+      </main>
+
+      <footer class="dock">
+        <div id="build-bar" class="dock__towers"></div>
+        <div id="tower-panel" class="panel-tower hidden">
+          <div class="panel-tower__info">
+            <b id="tp-name"></b>
+            <span id="tp-stats" class="muted"></span>
+          </div>
+          <div class="panel-tower__btns">
+            <button id="tp-upgrade" class="btn btn--primary" type="button"></button>
+            <button id="tp-sell" class="btn" type="button"></button>
+            <button id="tp-close" class="btn btn--icon" type="button" aria-label="닫기">✕</button>
+          </div>
+        </div>
+        <div class="dock__actions">
+          <button id="btn-wave" class="btn btn--primary btn--wide" type="button">▶ git push --wave</button>
+          <button id="btn-speed" class="btn btn--icon" type="button" aria-label="빠르기">×1</button>
+        </div>
+      </footer>
+    </div>
+
+    <section id="screen-title" class="screen">
+      <div class="panel panel--title">
+        <p class="prompt">~/prod <span class="branch">(release/freeze)</span> $</p>
+        <canvas id="title-art" class="title-art" width="14" height="14" aria-hidden="true"></canvas>
+        <h1 class="logo">CODE FREEZE</h1>
+        <p id="tagline" class="tagline"></p>
+        <ul class="story">
+          <li>내일부터 연말 <b>코드 프리즈</b>. 오늘 밤만 버티면 연휴다.</li>
+          <li>그런데 <b>main</b> 브랜치를 따라 버그가 <b>prod</b> 로 몰려온다.</li>
+          <li>길 옆에 개발 도구를 깔아 10번의 스프린트를 막아라.</li>
+        </ul>
+        <button id="btn-start" class="btn btn--primary btn--wide" type="button">▶ npm run defend</button>
+        <p class="hint hint--keys">1~5 타워 고르기 · Space 웨이브 시작 · Esc 취소 · F 빠르기</p>
+        <p class="hint hint--touch">아래에서 타워를 고르고 길 옆 빈칸을 누르세요</p>
+        <p class="version">v0.1.0 demo · <a href="https://github.com/kwn00/friday-deploy" target="_blank" rel="noopener">Friday Deploy</a> 패밀리</p>
+      </div>
+    </section>
+
+    <section id="screen-pause" class="screen hidden">
+      <div class="panel">
+        <h2>Ⅱ 일시정지</h2>
+        <div class="buttons">
+          <button id="btn-resume" class="btn btn--primary" type="button">▶ 계속하기</button>
+          <button id="btn-sound" class="btn" type="button"></button>
+          <button id="btn-quit" class="btn" type="button">git reset --hard <small>처음부터</small></button>
+        </div>
+      </div>
+    </section>
+
+    <section id="screen-result" class="screen hidden">
+      <div class="panel">
+        <pre id="result-code" class="result-code"></pre>
+        <h2 id="result-title"></h2>
+        <p id="result-text" class="muted"></p>
+        <button id="btn-retry" class="btn btn--primary btn--wide" type="button">↻ 다시 하기</button>
+      </div>
+    </section>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

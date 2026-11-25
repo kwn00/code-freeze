@@ -1,0 +1,429 @@
+/* ─────────────────────────────────────────────
+ * 모바일 퍼스트 (세로 폰이 기본). Friday Deploy 와 같은 팔레트·폰트·픽셀 테두리.
+ * 위: HUD / 가운데: 맵 캔버스 (정수 배율) / 아래: 타워 고르기와 웨이브 버튼 (엄지가 닿는 곳)
+ * ───────────────────────────────────────────── */
+
+@font-face {
+  font-family: 'Galmuri11';
+  src: url('/fonts/Galmuri11.woff2') format('woff2');
+  font-display: swap;
+}
+
+:root {
+  --bg: #1e1e2e;
+  --bg-2: #181825;
+  --panel: #313244;
+  --line: #11111b;
+  --text: #cdd6f4;
+  --muted: #9399b2;
+  --green: #a6e3a1;
+  --red: #f38ba8;
+  --yellow: #f9e2af;
+  --blue: #89b4fa;
+  --purple: #cba6f7;
+  --orange: #fab387;
+  --cyan: #89dceb;
+  --btn-rgb: 69, 71, 90;
+  --shade-rgb: 17, 17, 27;
+
+  --px: 2px;
+  --font: 'Galmuri11', 'DungGeunMo', ui-monospace, 'SF Mono', Menlo, Consolas, 'D2Coding', monospace;
+  --fs: 13px;
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--bg-2);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--fs);
+  line-height: 1.5;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.hidden {
+  display: none !important;
+}
+.muted {
+  color: var(--muted);
+}
+
+/* ── 틀 ── */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  padding: var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l);
+}
+
+.hud {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border-bottom: var(--px) solid var(--line);
+}
+.hud__stat {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 3px 8px;
+  background: var(--panel);
+  box-shadow: 0 0 0 var(--px) var(--line);
+  white-space: nowrap;
+}
+.hud__stat span {
+  color: var(--muted);
+  font-size: 11px;
+}
+.hud__stat--life b {
+  color: var(--green);
+}
+.hud__stat--life.is-low b {
+  color: var(--red);
+}
+.hud__stat--money b {
+  color: var(--yellow);
+}
+.hud__stat--wave b {
+  color: var(--cyan);
+}
+.hud__btn {
+  margin-left: auto;
+  width: 34px;
+  height: 30px;
+  font: inherit;
+  color: var(--text);
+  background: rgb(var(--btn-rgb));
+  border: 0;
+  box-shadow: 0 0 0 var(--px) var(--line), inset 0 calc(var(--px) * -2) 0 rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+.stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.stage canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  image-rendering: pixelated;
+  touch-action: none;
+}
+
+.banner {
+  position: absolute;
+  left: 50%;
+  top: 12%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 24px);
+  margin: 0;
+  padding: 8px 14px;
+  text-align: center;
+  background: rgba(var(--shade-rgb), 0.88);
+  box-shadow: 0 0 0 var(--px) var(--line), 0 0 0 calc(var(--px) * 2) var(--panel);
+  pointer-events: none;
+  animation: pop 0.25s steps(3);
+}
+.banner--bad {
+  color: var(--red);
+}
+.banner--good {
+  color: var(--green);
+}
+@keyframes pop {
+  from {
+    transform: translateX(-50%) scale(0.7);
+  }
+}
+
+/* ── 아래 독 ── */
+.dock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px 10px;
+  background: var(--bg);
+  border-top: var(--px) solid var(--line);
+}
+.dock__towers {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.tower-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 2px 5px;
+  font: inherit;
+  font-size: 10px;
+  color: var(--text);
+  background: var(--panel);
+  border: 0;
+  box-shadow: 0 0 0 var(--px) var(--line), inset 0 calc(var(--px) * -2) 0 rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  min-width: 0;
+}
+.tower-btn canvas {
+  width: 28px;
+  height: 28px;
+  image-rendering: pixelated;
+}
+.tower-btn__name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tower-btn__cost {
+  color: var(--yellow);
+}
+.tower-btn.is-active {
+  background: #3d4a3f;
+  box-shadow: 0 0 0 var(--px) var(--line), 0 0 0 calc(var(--px) * 2) var(--green);
+}
+.tower-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.tower-btn:disabled .tower-btn__cost {
+  color: var(--red);
+}
+
+.dock__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.panel-tower {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: var(--panel);
+  box-shadow: 0 0 0 var(--px) var(--line);
+}
+.panel-tower__info {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+}
+.panel-tower__info b {
+  color: var(--yellow);
+}
+.panel-tower__btns {
+  display: flex;
+  gap: 6px;
+}
+.panel-tower__btns .btn:not(.btn--icon) {
+  flex: 1;
+}
+
+/* ── 버튼 ── */
+.btn {
+  padding: 9px 12px;
+  font: inherit;
+  color: var(--text);
+  background: rgb(var(--btn-rgb));
+  border: 0;
+  box-shadow: 0 0 0 var(--px) var(--line), inset 0 calc(var(--px) * -2) 0 rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.btn small {
+  color: var(--muted);
+}
+.btn--primary {
+  color: var(--line);
+  background: var(--green);
+}
+.btn--primary small {
+  color: #2b4a33;
+}
+.btn--wide {
+  flex: 1;
+  width: 100%;
+}
+.btn--icon {
+  min-width: 46px;
+}
+
+/* ── 덮는 화면 ── */
+.screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(var(--shade-rgb), 0.82);
+  overflow-y: auto;
+}
+.panel {
+  width: min(100%, 380px);
+  padding: 18px 16px;
+  background: var(--bg);
+  box-shadow: 0 0 0 var(--px) var(--line), 0 0 0 calc(var(--px) * 2) var(--panel), 0 0 0 calc(var(--px) * 3) var(--line);
+  text-align: center;
+}
+.panel h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+.panel .buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.prompt {
+  margin: 0 0 6px;
+  text-align: left;
+  color: var(--green);
+  font-size: 12px;
+}
+.prompt .branch {
+  color: var(--purple);
+}
+.title-art {
+  width: 56px;
+  height: 56px;
+  image-rendering: pixelated;
+}
+.logo {
+  margin: 4px 0;
+  font-size: 30px;
+  letter-spacing: 1px;
+  color: var(--cyan);
+  text-shadow: 2px 2px 0 var(--line), 4px 4px 0 #2a4a55;
+}
+.tagline {
+  margin: 0 0 12px;
+  color: var(--yellow);
+}
+.story {
+  margin: 0 0 16px;
+  padding: 10px 12px 10px 26px;
+  text-align: left;
+  font-size: 12px;
+  background: var(--bg-2);
+  box-shadow: 0 0 0 var(--px) var(--line);
+}
+.story li {
+  margin: 2px 0;
+}
+.story b {
+  color: var(--orange);
+  font-weight: normal;
+}
+.hint {
+  margin: 12px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+.hint--keys {
+  display: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .hint--keys {
+    display: block;
+  }
+  .hint--touch {
+    display: none;
+  }
+}
+.version {
+  margin: 10px 0 0;
+  font-size: 10px;
+  color: var(--muted);
+}
+.version a {
+  color: var(--blue);
+}
+.result-code {
+  margin: 0 0 10px;
+  padding: 8px;
+  text-align: left;
+  white-space: pre-wrap;
+  font: inherit;
+  font-size: 11px;
+  background: var(--bg-2);
+  box-shadow: 0 0 0 var(--px) var(--line);
+}
+.result-code.is-bad {
+  color: var(--red);
+}
+.result-code.is-good {
+  color: var(--green);
+}
+#result-text {
+  margin: 0 0 14px;
+}
+
+/* ── 큰 화면: 독을 넓게, 글자 조금 크게 ── */
+@media (min-width: 768px) {
+  :root {
+    --fs: 14px;
+  }
+  .dock {
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: center;
+  }
+  .dock__towers,
+  .panel-tower {
+    width: min(560px, 70%);
+  }
+  .tower-btn {
+    font-size: 11px;
+  }
+  .dock__actions {
+    width: 240px;
+  }
+}
+/* 가로 폰: 높이가 모자라면 HUD·독을 얇게 */
+@media (max-height: 500px) {
+  .hud {
+    padding: 4px 10px;
+  }
+  .dock {
+    flex-direction: row;
+    padding: 4px 10px;
+  }
+  .tower-btn canvas {
+    width: 20px;
+    height: 20px;
+  }
+  .tower-btn__name {
+    display: none;
+  }
+  .dock__actions {
+    width: 200px;
+  }
+}
