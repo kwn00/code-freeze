@@ -28,7 +28,10 @@ function bestSpot(s: State, kind: TowerId): [number, number] | null {
 }
 
 /** 길을 가장 많이 덮는 칸에 돌아가며 짓고, 남으면 낮은 단계부터 올리는 봇 */
+/** 30 스프린트를 시작할 때의 타워 단계 합계 (돈이 얼마나 넉넉했는지) */
+let levelsAt30 = 0;
 function play(rotation: TowerId[], maxLevel: number, towersPerWave: (w: number) => number, maxWave = 90): number {
+  levelsAt30 = 0;
   const s = newGame();
   let rot = 0;
   while (s.status === 'build' && s.wave < maxWave) {
@@ -56,6 +59,7 @@ function play(rotation: TowerId[], maxLevel: number, towersPerWave: (w: number) 
       }
       break;
     }
+    if (s.wave + 1 === 30) levelsAt30 = s.towers.reduce((a, t) => a + t.level, 0);
     startWave(s);
     for (let k = 0; k < 30 * 1500 && (s.status as string) === 'wave'; k++) step(s);
   }
@@ -66,7 +70,7 @@ const EXPERT = (): number => play(['log', 'test', 'duck', 'ai', 'firewall', 'reg
 
 test('잘하는 봇은 프리즈에 성공하고 야근에 들어가지만, 야근은 끝이 있다', () => {
   const cleared = EXPERT();
-  assert.ok(cleared >= WIN_WAVE + 5, `막은 스프린트 ${cleared}`);
+  assert.ok(cleared >= WIN_WAVE + 4, `막은 스프린트 ${cleared}`);
   assert.ok(cleared < WIN_WAVE + 30, `야근이 너무 길다: ${cleared}`);
 });
 
@@ -82,4 +86,10 @@ test('대충 하는 봇은 프리즈 전에 지고, console.log() 만 짓는 봇
   assert.ok(casual >= 3 && casual < 20, `대충: ${casual}`);
   const spam = play(['log'], 3, (w) => Math.min(60, 3 + w));
   assert.ok(spam >= 10 && spam < EXPERT() - 5, `log 만: ${spam}`);
+});
+
+test('돈: 잘하는 봇도 30 스프린트까지 모든 타워를 끝까지 올리지는 못한다 (고르는 재미가 남게)', () => {
+  EXPERT();
+  // 1.1.0 에서는 30 스프린트에 타워 29개의 단계 합계가 82 (거의 다 3단계 이상)였다
+  assert.ok(levelsAt30 > 0 && levelsAt30 <= 70, `30 스프린트의 단계 합계 ${levelsAt30}`);
 });

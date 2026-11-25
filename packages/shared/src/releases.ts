@@ -21,6 +21,18 @@ export interface ReleaseNote {
 /** 최신 버전이 맨 위 */
 export const RELEASES: readonly ReleaseNote[] = [
   {
+    version: '1.2.0',
+    date: '2026-11-25',
+    title: 'SP 가 귀해졌어요',
+    items: [
+      '버그를 잡을 때 받는 SP 가 스프린트가 올라도 늘지 않아요.',
+      '스프린트를 막을 때 받는 보너스와 보스를 잡을 때 받는 SP 가 줄었어요.',
+      '그만큼 버그는 조금 덜 단단해요. 어디에 쓸지 골라 보세요.',
+      '야근은 조금 더 천천히 어려워져요.',
+      '빠르기 ×5 가 생겼어요.',
+    ],
+  },
+  {
     version: '1.1.0',
     date: '2026-11-25',
     title: '더 어려워졌어요',

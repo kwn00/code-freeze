@@ -29,6 +29,8 @@ import {
   type ReleaseNote,
   type RunResult,
   type ServerMsg,
+  type Speed,
+  SPEEDS,
   type TowerId,
 } from '@code-freeze/shared';
 import { Audio } from './audio';
@@ -68,7 +70,7 @@ let muted = store('cf-muted') === '1';
 audio.setMuted(muted);
 
 /** 누르고 서버의 확인을 기다리는 값 (빠르기, 멈춤) */
-const wantSpeed = new Pending<1 | 2 | 3>();
+const wantSpeed = new Pending<Speed>();
 const wantPaused = new Pending<boolean>();
 /** 연결 전에 그리는 빈 맵 */
 const EMPTY = newGame();
@@ -155,7 +157,7 @@ function refreshUi(): void {
   }
   const now = performance.now();
   // 누른 것은 서버가 확인할 때까지 그대로 보여 준다 (늦게 도착한 옛 상태로 깜빡이지 않게. pending.ts)
-  const speed = wantSpeed.shown(((s?.speed ?? 1) as 1 | 2 | 3), now);
+  const speed = wantSpeed.shown(((s?.speed ?? 1) as Speed), now);
   const paused = s ? wantPaused.shown(s.paused, now) : false;
   $('btn-speed').textContent = `×${speed}`;
   const hint = $('build-hint');
@@ -313,7 +315,8 @@ function toggleSpeed(): void {
   const now = performance.now();
   // 서버 답을 기다리지 않고 연달아 눌러도 1 → 2 → 3 으로 넘어가게, 기다리는 값부터 센다
   const base = wantSpeed.peek(now) ?? current()?.speed ?? 1;
-  const s = base === 1 ? 2 : base === 2 ? 3 : 1;
+  // 1 → 2 → 3 → 5 → 1
+  const s = SPEEDS[(SPEEDS.indexOf(base as Speed) + 1) % SPEEDS.length]!;
   wantSpeed.set(s, now);
   send({ t: 'speed', s });
   refreshUi();

@@ -9,7 +9,9 @@ export const TICK_HZ = 30;
 /** 웨이브 중 화면에 상태를 보내는 횟수 (초당). 짓는 중에는 바뀔 때만 보낸다 */
 export const SNAPSHOT_HZ = 10;
 /** 고를 수 있는 빠르기 */
-export const SPEEDS = [1, 2, 3] as const;
+export const SPEEDS = [1, 2, 3, 5] as const;
+/** 가장 빠른 빠르기 (서버 1초에 sim 이 이만큼 흐른다) */
+export const MAX_SPEED = 5;
 export type Speed = (typeof SPEEDS)[number];
 
 /** 클라이언트 메시지 하나의 최대 크기 (바이트). 넘으면 연결을 끊는다 */

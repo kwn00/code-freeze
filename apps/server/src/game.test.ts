@@ -31,12 +31,12 @@ test('클라이언트는 의도만 보내고, 돈은 서버가 계산한다', ()
   assert.ok(last().money >= 0);
 });
 
-test('웨이브는 서버 틱으로만 흐르고, 빠르기는 ×3 을 넘지 않는다', () => {
+test('웨이브는 서버 틱으로만 흐르고, 빠르기는 ×5 를 넘지 않는다', () => {
   const { g } = setup();
   g.handle({ t: 'wave' });
-  g.handle({ t: 'speed', s: 3 });
+  g.handle({ t: 'speed', s: 5 });
   for (let i = 0; i < 30; i++) g.tick(0);
-  assert.ok(Math.abs(g.state.time - 3) < 1e-6, `서버 1초(30틱)에 sim 3초: ${g.state.time}`);
+  assert.ok(Math.abs(g.state.time - 5) < 1e-6, `서버 1초(30틱)에 sim 5초: ${g.state.time}`);
 });
 
 test('멈추면 시간이 흐르지 않고, 멈춘 동안 웨이브를 시작하지 못한다', () => {
@@ -102,7 +102,7 @@ test('리더보드: 서버가 만든 기록만, 순위대로, 스프린트 0 은
   assert.equal(lb.record({ ...base, cleared: 3 }), 1);
   assert.equal(lb.record({ ...base, name: 'b', cleared: 5 }), 1);
   assert.equal(lb.record({ ...base, name: 'c', cleared: 5, lives: 1 }), 2);
-  // 서버 시간보다 빠른 판(빨리 감기 ×3 초과)은 버린다
+  // 서버 시간보다 빠른 판(빨리 감기 ×5 초과)은 버린다
   assert.equal(lb.record({ ...base, cleared: 9, simSeconds: 1000, wallSeconds: 10 }), null);
   // 이기지 않았는데 이겼다고 적힌 판, 이상한 이름은 버린다
   assert.equal(lb.record({ ...base, cleared: 3, won: true }), null);

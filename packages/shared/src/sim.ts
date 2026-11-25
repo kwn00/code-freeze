@@ -11,7 +11,8 @@ import {
   START_LIVES,
   START_MONEY,
   TOWERS,
-  WAVE_BONUS,
+  ECONOMY,
+  waveBonusAt,
   WIN_WAVE,
   bountyScaleAt,
   hpScaleAt,
@@ -507,7 +508,7 @@ export function step(s: State): void {
     e.flash = Math.max(0, e.flash - dt);
     if (e.hp <= 0) {
       const [x, y] = enemyPos(e);
-      const bounty = Math.round(def.bounty * bountyScale);
+      const bounty = Math.max(1, Math.round(def.bounty * bountyScale * (def.boss ? ECONOMY.boss : 1)));
       s.money += bounty;
       s.kills++;
       s.events.push({ t: 'kill', x, y, kind: e.kind, bounty });
@@ -540,7 +541,7 @@ export function step(s: State): void {
   }
   if (s.queue.length === 0 && s.enemies.length === 0) {
     s.shots = [];
-    const bonus = WAVE_BONUS.base + WAVE_BONUS.perWave * Math.min(s.wave, WIN_WAVE);
+    const bonus = waveBonusAt(s.wave);
     s.money += bonus;
     s.status = 'build';
     s.events.push({ t: 'wave_clear', wave: s.wave, bonus });
