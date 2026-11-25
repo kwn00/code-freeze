@@ -33,8 +33,14 @@ const RETRY_MS = 15_000;
 /** 저장하지 못하고 쌓아 둘 수 있는 기록 수 (넘치면 오래된 것부터 버린다: 메모리를 지킨다) */
 const MAX_PENDING = 500;
 
+/**
+ * 순위: 막은 스프린트 → 남은 가용성 → 클리어 시간(짧을수록 위, 시간이 없는 예전 기록은 뒤) → 잡은 버그 → 먼저 세운 기록
+ * (store-postgres.ts 의 ORDER 와 같아야 한다)
+ */
 export function compareRuns(a: BoardEntry, b: BoardEntry): number {
-  return b.cleared - a.cleared || b.lives - a.lives || b.kills - a.kills || a.endedAt - b.endedAt;
+  const ta = a.time ?? Infinity;
+  const tb = b.time ?? Infinity;
+  return b.cleared - a.cleared || b.lives - a.lives || (ta === tb ? 0 : ta < tb ? -1 : 1) || b.kills - a.kills || a.endedAt - b.endedAt;
 }
 
 /** 서버가 만든 기록인지 한 번 더 확인 (저장소에서 읽은 값에도 쓴다) */
@@ -51,7 +57,8 @@ export function isValidEntry(e: BoardEntry): boolean {
     // 프리즈 성공: 지금은 30 스프린트, 0.1.x 는 10 스프린트였다 (예전 기록도 읽을 수 있게)
     (e.won ? e.cleared >= OLD_WIN_WAVE : e.cleared < WIN_WAVE) &&
     Number.isFinite(e.endedAt) &&
-    (e.towers === undefined || isBoardTowers(e.towers))
+    (e.towers === undefined || isBoardTowers(e.towers)) &&
+    (e.time === undefined || (Number.isInteger(e.time) && e.time >= 0 && e.time <= 10 * 24 * 3600))
   );
 }
 
@@ -171,6 +178,7 @@ export class Leaderboard {
       won: r.won,
       endedAt: now,
       towers: r.towers,
+      time: r.time,
     };
     if (!isValidEntry(rec)) return null;
     this.pending.push(rec);
@@ -218,7 +226,7 @@ export class Leaderboard {
 }
 
 function toEntries(rows: readonly RunRecord[]): LeaderboardEntry[] {
-  return rows.map(({ name, cleared, lives, kills, won, endedAt, towers, version }, i) => ({
+  return rows.map(({ name, cleared, lives, kills, won, endedAt, towers, version, time }, i) => ({
       rank: i + 1,
       name,
       cleared,
@@ -228,5 +236,6 @@ function toEntries(rows: readonly RunRecord[]): LeaderboardEntry[] {
       endedAt,
       ...(towers ? { towers } : {}),
       ...(version ? { version } : {}),
+      ...(time !== undefined ? { time } : {}),
     }));
 }
